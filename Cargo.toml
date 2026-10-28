@@ -9,6 +9,8 @@ license = "Apache-2.0"
 num-complex = "0.4"
 num-traits = "0.2"
 thiserror = "2"
+libloading = "0.8"
+cpal = "0.15"
 
 [profile.release]
 debug = true

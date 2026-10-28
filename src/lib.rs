@@ -11,6 +11,8 @@
 //! - [`autointerpret`]: automatic signal parameter estimation / message segmentation
 
 pub mod autointerpret;
+pub mod awre;
+pub mod devices;
 pub mod encoding;
 pub mod filter;
 pub mod iq;
