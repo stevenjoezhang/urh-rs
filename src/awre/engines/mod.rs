@@ -35,10 +35,14 @@ pub fn bit_start(rng: &CommonRange) -> usize {
 }
 
 /// URH `CommonRange.bit_end` (inclusive).
+///
+/// Wrapping on the degenerate start=length=0 range: numpy wraps the `-1`
+/// and continues, so we wrap too instead of panicking in debug builds.
 pub fn bit_end(rng: &CommonRange) -> usize {
-    convert_number(rng.start, rng.range_type) + convert_number(rng.length, rng.range_type)
-        - 1
-        + rng.sync_end
+    convert_number(rng.start, rng.range_type)
+        .wrapping_add(convert_number(rng.length, rng.range_type))
+        .wrapping_sub(1)
+        .wrapping_add(rng.sync_end)
 }
 
 /// URH `CommonRange.length_in_bits` (note the reference's off-by-one quirk:

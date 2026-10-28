@@ -11,6 +11,11 @@ num-traits = "0.2"
 thiserror = "2"
 libloading = "0.8"
 cpal = "0.15"
+quick-xml = "0.36"
+
+[[bin]]
+name = "urh-cli"
+path = "src/bin/urh-cli.rs"
 
 [profile.release]
 debug = true

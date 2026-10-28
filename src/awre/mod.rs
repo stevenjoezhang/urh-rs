@@ -11,6 +11,7 @@ pub mod preprocessor;
 pub mod util;
 
 pub use common_range::{CommonRange, RangeType};
+pub use format_finder::FormatFinder;
 
 pub mod auto_assigner;
 pub mod engines;

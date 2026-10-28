@@ -17,7 +17,9 @@ pub mod encoding;
 pub mod filter;
 pub mod iq;
 pub mod modulation;
+pub mod proto_xml;
 pub mod protocol;
+pub mod spectrogram;
 
 pub use num_complex::Complex32;
 

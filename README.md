@@ -1,22 +1,47 @@
 # urh-core
 
-[Universal Radio Hacker (URH)](https://github.com/jopohl/urh) 核心信号处理层的 Rust 转写。URH 已归档；本项目逐模块移植其 DSP/协议核心，GUI 不在本阶段范围。
+[Universal Radio Hacker (URH)](https://github.com/jopohl/urh) 的 Rust 转写。URH 已归档；本项目逐模块移植其信号处理核心，行为与原版逐位/逐样本对齐（以原版 Python 实测输出为真值验收）。GUI 不在范围内。
 
 ## 模块
 
 | 模块 | 内容 | 参照 (URH) |
 |---|---|---|
-| `iq` | IQ 容器、`.complex*` 文件 I/O、幅度/dB | `IQArray.py`, `Signal.py`, `util.pyx` |
-| `filter` | FIR/IIR | `signal_functions.pyx`, `Filter.py` |
-| `modulation` | ASK/FSK/PSK/GFSK/OQPSK 调制与解调 | `signal_functions.pyx`, `Modulator.py` |
-| `encoding` | 编码链 + CRC | `Encoding.py`, `GenericCRC.py`, `util.pyx` |
+| `iq` | IQ 容器、`.complex*` 全格式文件 I/O、幅度/dB | `IQArray.py`, `Signal.py`, `util.pyx` |
+| `filter` | FIR/IIR、滑动平均、直流校正 | `signal_functions.pyx`, `Filter.py` |
+| `modulation` | ASK/FSK/PSK/GFSK/OQPSK 调制与解调（含 costas loop） | `signal_functions.pyx`, `Modulator.py` |
+| `encoding` | 编码链（Manchester/差分/Morse/CC1101 白化…）+ CRC 全家 | `Encoding.py`, `GenericCRC.py`, `util.pyx` |
 | `protocol` | 消息/消息类型/协议分析 | `Message.py`, `ProtocolAnalyzer.py` |
-| `autointerpret` | 自动参数估计 | `auto_interpretation.pyx`, `ainterpretation/` |
+| `autointerpret` | 自动参数估计（调制/bit_length/center/noise） | `auto_interpretation.pyx`, `ainterpretation/` |
+| `awre` | 协议结构自动推断：preamble/sync/长度/序号/地址/校验字段 | `awre/` 全部 |
+| `devices` | 设备后端：12 个（见下） | `dev/` |
+| `proto_xml` | `.proto.xml` 协议文件加载/保存（quick-xml） | `ProtocolAnalyzerContainer.py` |
+| `spectrogram` | STFT 频谱图（手写 radix-2 FFT） | `Spectrogram.py` |
+
+## 设备后端
+
+- **直接绑厂商库（运行时 dlopen，无 SDK 也能编译）**：HackRF（含 rad1o）、RTL-SDR、AirSpy、BladeRF、LimeSDR、PlutoSDR (libiio)、USRP (libuhd)、SDRPlay
+- **声卡**：cpal/CoreAudio（实信号 / 立体声 IQ 两模式）
+- **RTL-TCP**：纯 Rust 网络协议实现（mock 服务器字节级测试）
+- **VirtualDevice**：`.complex*` 文件回放当信号源；**PCAP/PCAPNG**：解析 + 回放
+- 4 个 `#[ignore]` 硬件冒烟测试留给有设备的环境
+
+## CLI
+
+```sh
+cargo run --bin urh-cli -- info|analyze|participants <file.complex> [--sample-rate N] [--modulation ASK|FSK|...]
+```
+
+## 测试与行为一致性
+
+`cargo test` — 单元 + 集成测试。验收原则：**与原版实测对照，不与直觉对照**：
+- `tests/cli_compare.rs`：对 ask/fsk/ASK_mod/ask_short.complex 跑原版 Python（`~/urh-ref` + venv）与 Rust CLI，断言调制/bit_length/消息比特长序列全等，center/noise/pause 容差内（实测逐位一致）
+- `tests/awre_real_protocols.rs`：35_messages / ack_frames_with_crc / with_checksum / without_preamble 四个真实协议，字段推断结果（位置/长度/地址值/成员归属）与原版 FormatFinder 实测一致
+- 原版上游 bug（`get_crc_datarange` 索引、`median_filter` 窗口、`bit_end` 溢出回绕等）原样保留并注释，保证行为可对照
 
 ## 状态
 
-进行中——macOS 先行，其他平台后续。参考测试数据来自原仓库 `tests/data/`（见 `~/urh-ref`）。
+macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Radio 后端（dev/gr）、simulator 规则引擎。
 
-```sh
-cargo test
-```
+## 原版参考环境
+
+`~/urh-ref`（只读 clone）。Python 真值环境：`python3 -m venv /tmp/urh-venv && /tmp/urh-venv/bin/pip install numpy psutil PyQt6 cython setuptools`，Cython 扩展已 `build_ext --inplace`。
