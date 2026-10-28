@@ -16,6 +16,10 @@
 | `devices` | 设备后端：12 个（见下） | `dev/` |
 | `proto_xml` | `.proto.xml` 协议文件加载/保存（quick-xml） | `ProtocolAnalyzerContainer.py` |
 | `spectrogram` | STFT 频谱图（手写 radix-2 FFT） | `Spectrogram.py` |
+| `simulator` | 仿真规则引擎：表达式解析、规则-动作树、消息收发循环、配置 XML | `simulator/`（GUI 场景项除外） |
+| `continuous_modulator` / `endless_sender` | 连续调制发送 / 循环发送 | `ContinuousModulator.py`, `EndlessSender.py` |
+
+另有 `tests/simulator_flow.rs`：与原版 `test_simulation_flow` 的 Python 实测输出（消息序列/transcript/样本流）逐条对照一致。
 
 ## 设备后端
 
@@ -40,7 +44,7 @@ cargo run --bin urh-cli -- info|analyze|participants <file.complex> [--sample-ra
 
 ## 状态
 
-macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Radio 后端（dev/gr）、simulator 规则引擎。
+macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Radio 后端（dev/gr）。simulator 规则引擎核心已移植（表达式解析器/规则-动作/引擎/配置 XML，GUI 场景项除外）。
 
 ## 原版参考环境
 

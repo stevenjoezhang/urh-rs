@@ -12,13 +12,16 @@
 
 pub mod autointerpret;
 pub mod awre;
+pub mod continuous_modulator;
 pub mod devices;
+pub mod endless_sender;
 pub mod encoding;
 pub mod filter;
 pub mod iq;
 pub mod modulation;
 pub mod proto_xml;
 pub mod protocol;
+pub mod simulator;
 pub mod spectrogram;
 
 pub use num_complex::Complex32;
