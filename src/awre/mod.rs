@@ -6,6 +6,8 @@
 //! orchestrated by `format_finder`.
 
 pub mod common_range;
+pub mod histogram;
+pub mod preprocessor;
 pub mod util;
 
 pub use common_range::{CommonRange, RangeType};
