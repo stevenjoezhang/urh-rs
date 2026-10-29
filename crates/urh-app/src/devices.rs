@@ -205,6 +205,11 @@ pub struct CaptureConfig {
     pub host: Option<String>,
     /// rtl-tcp only: server port.
     pub port: Option<u16>,
+    /// Native backends only: device identifier (USB serial / index) of the
+    /// specific hardware to open — the values [`DeviceInfo`] selection is
+    /// built from `list_device_ids`. `None`/empty opens the first device.
+    #[serde(default)]
+    pub identifier: Option<String>,
 }
 
 /// Returned by [`SignalRepository::start_capture`].
@@ -334,6 +339,31 @@ impl SignalRepository {
             .collect()
     }
 
+    /// Enumerate the *connected physical devices* of one backend (contract:
+    /// "Device capture") — the values for the device-identifier selection,
+    /// port of the original `DeviceSettingsWidget`'s refresh button calling
+    /// `device.get_device_list()`.
+    ///
+    /// Returns an empty list when no hardware is connected, the vendor
+    /// library is missing, or the backend has no multi-device identifiers
+    /// (mock, rtl-tcp). Unknown device names are `invalid-argument`.
+    pub fn list_device_ids(&self, device: &str) -> Result<Vec<String>, AppError> {
+        let canonical = canonical_device_name(device).ok_or_else(|| {
+            AppError::invalid_argument(format!(
+                "unknown device {:?} (see list_devices)",
+                device
+            ))
+        })?;
+        Ok(match DEVICES
+            .iter()
+            .find(|&&(name, _, _)| name == canonical)
+            .map(|&(_, _, backend)| backend)
+        {
+            Some(BACKEND_NATIVE) => native::device_list_for(canonical),
+            _ => Vec::new(),
+        })
+    }
+
     /// Open a device and start streaming (contract: "Device capture").
     ///
     /// Spawns the device, pump and (when `record`) recorder threads, waits
@@ -400,7 +430,7 @@ impl SignalRepository {
             host: cfg.host.clone(),
             port: cfg.port,
             config: DeviceConfig {
-                identifier: String::new(),
+                identifier: cfg.identifier.clone().unwrap_or_default(),
                 frequency: cfg.frequency,
                 sample_rate: cfg.sample_rate,
                 bandwidth: cfg.bandwidth,
@@ -980,8 +1010,7 @@ fn captures() -> &'static Mutex<HashMap<String, Arc<CaptureSession>>> {
 // ---------------------------------------------------------------------------
 
 /// Everything the device thread needs; `DeviceConfig` mirrors the contract's
-/// `CaptureConfig` fields (the contract has no device-identifier field, so
-/// multi-device selection passes an empty identifier).
+/// `CaptureConfig` fields plus the pre-validated canonical backend name.
 struct DeviceSpec {
     canonical: &'static str,
     host: Option<String>,
@@ -1085,7 +1114,11 @@ fn open_device(spec: &DeviceSpec) -> Result<Box<dyn Device>, AppError> {
         }
         // "soundcard" is rejected in start_capture and unknown names never
         // pass validation, so only native registry names arrive here.
-        name => Ok(native::open_by_name(name, None).map_err(device_error)?),
+        name => Ok(native::open_by_name(
+            name,
+            Some(spec.config.identifier.as_str()),
+        )
+        .map_err(device_error)?),
     }
 }
 
@@ -1295,6 +1328,7 @@ mod tests {
             record: false,
             host: None,
             port: None,
+            identifier: None,
         }
     }
 
@@ -1302,6 +1336,22 @@ mod tests {
     /// exists only for these tests, so it lives here too).
     fn stop_requested(core: &CaptureCore) -> bool {
         *core.stop.stopped.lock().unwrap()
+    }
+
+    #[test]
+    fn list_device_ids_rejects_unknown_and_returns_empty_for_non_native() {
+        let repo = shared_repo();
+        // unknown device name → invalid-argument (mirrors other lookups)
+        let err = repo.list_device_ids("does-not-exist").unwrap_err();
+        assert_eq!(err.code, "invalid-argument");
+        // non-native backends never enumerate identifiers
+        assert!(repo.list_device_ids("mock").unwrap().is_empty());
+        assert!(repo.list_device_ids("rtl-tcp").unwrap().is_empty());
+        // Native backends are NOT probed here on purpose: their device_list
+        // does real USB/network discovery (uhd find, iio context scan) that
+        // can block for a long time on a machine without hardware — CI must
+        // not depend on that. The empty-list-on-no-hardware behavior is
+        // covered by the drivers job on real libraries instead.
     }
 
     #[test]

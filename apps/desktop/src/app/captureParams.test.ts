@@ -34,6 +34,7 @@ describe("parseCaptureFields — valid configs", () => {
       record: true,
       host: null,
       port: null,
+      identifier: null,
     });
   });
 

@@ -253,6 +253,18 @@ button:active {
   border-radius: 6px;
 }
 
+/* device-identifier row: dropdown + refresh button (original URH's
+   comboBoxDeviceIdentifier + btnRefreshDeviceIdentifier) */
+.identifier-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.identifier-row button {
+  flex: none;
+  padding: 3px 10px;
+}
+
 .param-input:focus,
 .param-select:focus {
   outline: 1px solid var(--accent);

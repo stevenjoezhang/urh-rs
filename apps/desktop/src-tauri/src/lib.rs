@@ -293,6 +293,14 @@ async fn list_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, Cmd
 }
 
 #[tauri::command(rename_all = "snake_case")]
+async fn list_device_ids(
+    state: State<'_, AppState>,
+    device: String,
+) -> Result<Vec<String>, CmdError> {
+    blocking(&state.repo, move |repo| repo.list_device_ids(&device)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
 async fn start_capture(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
@@ -397,6 +405,7 @@ pub fn run() {
             cancel_analysis,
             run_awre,
             list_devices,
+            list_device_ids,
             start_capture,
             stop_capture,
             capture_stats,

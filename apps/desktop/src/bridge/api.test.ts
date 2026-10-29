@@ -350,6 +350,7 @@ describe("encodeCaptureConfig", () => {
       record: true,
       host: null,
       port: null,
+      identifier: null,
     });
     expect(encoded).toEqual({
       device: "mock",
@@ -361,6 +362,7 @@ describe("encodeCaptureConfig", () => {
       record: true,
       host: null,
       port: null,
+      identifier: null,
     });
   });
 
@@ -374,6 +376,7 @@ describe("encodeCaptureConfig", () => {
       record: false,
       host: "127.0.0.1",
       port: 1234,
+      identifier: null,
     });
     expect(encoded.host).toBe("127.0.0.1");
     expect(encoded.port).toBe(1234);
@@ -418,6 +421,7 @@ describe("startCapture", () => {
       record: true,
       host: null,
       port: null,
+      identifier: null,
     });
     expect(invokeMock).toHaveBeenCalledTimes(1);
     expect(invokeMock).toHaveBeenCalledWith("start_capture", {
@@ -431,6 +435,7 @@ describe("startCapture", () => {
         record: true,
         host: null,
         port: null,
+        identifier: null,
       },
     });
     expect(handle).toEqual({ captureId: "cap-3", signalId: "rec-7" });
@@ -447,6 +452,7 @@ describe("startCapture", () => {
       record: false,
       host: null,
       port: null,
+      identifier: null,
     });
     expect(handle).toEqual({ captureId: "cap-1", signalId: null });
   });
@@ -454,7 +460,7 @@ describe("startCapture", () => {
   it("rejects a handle without a capture_id", async () => {
     invokeMock.mockResolvedValue({ signal_id: "rec-1" });
     await expect(
-      startCapture({ device: "m", sampleRate: 1, frequency: 0, bandwidth: 0, gain: 0, record: false, host: null, port: null }),
+      startCapture({ device: "m", sampleRate: 1, frequency: 0, bandwidth: 0, gain: 0, record: false, host: null, port: null, identifier: null }),
     ).rejects.toMatchObject({ name: "IpcError", code: "internal" });
   });
 });

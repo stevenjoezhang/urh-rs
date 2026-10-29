@@ -527,6 +527,9 @@ export interface CaptureConfig {
   host: string | null;
   /** rtl-tcp only. */
   port: number | null;
+  /** Native backends only: identifier (serial/index) of the specific
+   * hardware to open; null opens the first device. */
+  identifier: string | null;
 }
 
 /** A started capture (contract v2 `CaptureHandle`). */
@@ -559,6 +562,7 @@ export function encodeCaptureConfig(config: CaptureConfig): Record<string, unkno
     record: config.record,
     host: config.host ?? null,
     port: config.port ?? null,
+    identifier: config.identifier ?? null,
   });
 }
 
@@ -623,6 +627,22 @@ export async function listDevices(): Promise<DeviceInfo[]> {
     throw toIpcError(e);
   }
   return parseArray("list_devices", raw).map(parseDeviceInfo);
+}
+
+/** Enumerate the connected physical devices (identifiers) of one backend. */
+export async function listDeviceIds(device: string): Promise<string[]> {
+  let raw: unknown;
+  try {
+    raw = await invoke<unknown>("list_device_ids", { device });
+  } catch (e) {
+    throw toIpcError(e);
+  }
+  return parseArray("list_device_ids", raw).map((v) => {
+    if (typeof v !== "string") {
+      throw new IpcError("internal", "list_device_ids entry is not a string");
+    }
+    return v;
+  });
 }
 
 /** Start a capture; resolves once the device is open and streaming. */

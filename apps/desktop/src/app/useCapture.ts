@@ -25,6 +25,7 @@ import {
   type CaptureStats,
   type DeviceInfo,
   captureStats,
+  listDeviceIds,
   listDevices,
   onCaptureBatch,
   onCaptureStats,
@@ -48,6 +49,10 @@ export interface CaptureParamFields {
   host: string;
   /** rtl-tcp only. */
   port: string;
+  /** Native backends only: serial/index of the specific hardware to open
+   * ("" = first device). Free text — mirrors the original's editable
+   * identifier combo, so values not (yet) enumerated can be typed. */
+  deviceIdentifier: string;
   record: boolean;
 }
 
@@ -59,6 +64,7 @@ export const DEFAULT_CAPTURE_FIELDS: CaptureParamFields = {
   gain: "20",
   host: "127.0.0.1",
   port: "1234",
+  deviceIdentifier: "",
   record: true,
 };
 
@@ -132,7 +138,17 @@ export function parseCaptureFields(
 
   return {
     ok: true,
-    config: { device, sampleRate, frequency: parseNumberText(fields.frequency), bandwidth: parseNumberText(fields.bandwidth), gain: parseNumberText(fields.gain), record: fields.record, host, port },
+    config: {
+      device,
+      sampleRate,
+      frequency: parseNumberText(fields.frequency),
+      bandwidth: parseNumberText(fields.bandwidth),
+      gain: parseNumberText(fields.gain),
+      record: fields.record,
+      host,
+      port,
+      identifier: fields.deviceIdentifier.trim() === "" ? null : fields.deviceIdentifier.trim(),
+    },
   };
 }
 
@@ -166,6 +182,7 @@ const MAX_PENDING_COLUMNS = 512;
 export function useCapture(options: UseCaptureOptions) {
   const [fields, setFields] = useState<CaptureParamFields>(DEFAULT_CAPTURE_FIELDS);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [deviceIds, setDeviceIds] = useState<string[]>([]);
   const [status, setStatus] = useState<CaptureStatus>("idle");
   const [active, setActive] = useState<ActiveCapture | null>(null);
   const [stats, setStats] = useState<CaptureStats | null>(null);
@@ -287,6 +304,28 @@ export function useCapture(options: UseCaptureOptions) {
   useEffect(() => {
     void refreshDevices();
   }, [refreshDevices]);
+
+  /** Connected-hardware identifiers of the selected native backend. */
+  const refreshDeviceIds = useCallback(async (device: string): Promise<void> => {
+    if (device === "") {
+      setDeviceIds([]);
+      return;
+    }
+    try {
+      setDeviceIds(await listDeviceIds(device));
+    } catch {
+      // The selection changes often; a failed probe just yields no list.
+      setDeviceIds([]);
+    }
+  }, []);
+
+  // Re-enumerate when the selected device changes (native backends probe the
+  // vendor library + USB; mock/rtl-tcp return an empty list) and clear a
+  // stale identifier.
+  useEffect(() => {
+    setFields((prev) => (prev.deviceIdentifier === "" ? prev : { ...prev, deviceIdentifier: "" }));
+    void refreshDeviceIds(fields.device);
+  }, [fields.device, refreshDeviceIds]);
 
   /** Update one text field (device select included); clears the last error. */
   const setField = useCallback((field: CaptureTextField, value: string): void => {
@@ -420,6 +459,8 @@ export function useCapture(options: UseCaptureOptions) {
     },
     // actions
     refreshDevices,
+    deviceIds,
+    refreshDeviceIds,
     setField,
     setRecord,
     start,

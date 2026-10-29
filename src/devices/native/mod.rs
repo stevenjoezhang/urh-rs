@@ -217,10 +217,32 @@ pub fn try_open(name: &str) -> Result<libloading::Library, libloading::Error> {
     unsafe { libloading::Library::new(name) }
 }
 
+/// Enumerate the connected physical devices of a backend — USB serials for
+/// HackRF/BladeRF/LimeSDR, indices for RTL-SDR, RSP serials for SDRPlay …
+/// (see the per-backend `Device::device_list` ports of the original
+/// `get_device_list()`). Empty when no device is connected or the vendor
+/// library is missing; unknown backends also return empty.
+///
+/// This is the backend-agnostic dispatch the original `DeviceSettingsWidget`
+/// drives its device-identifier combobox from.
+pub fn device_list_for(name: &str) -> Vec<String> {
+    use crate::devices::Device;
+    match name.to_lowercase().as_str() {
+        "hackrf" | "rad1o" => <hackrf::HackRfDevice as Device>::device_list(),
+        "rtlsdr" => <rtlsdr::RtlSdrDevice as Device>::device_list(),
+        "airspy" => <airspy::AirSpyDevice as Device>::device_list(),
+        "bladerf" => <bladerf::BladeRfDevice as Device>::device_list(),
+        "limesdr" => <limesdr::LimeSdrDevice as Device>::device_list(),
+        "plutosdr" => <plutosdr::PlutoSdrDevice as Device>::device_list(),
+        "usrp" => <usrp::UsrpDevice as Device>::device_list(),
+        "sdrplay" => <sdrplay::SdrPlayDevice as Device>::device_list(),
+        _ => Vec::new(),
+    }
+}
+
 /// Open a native device by backend name (simplified `BackendHandler`
 /// factory). `identifier` is the USB serial / URI where the backend supports
-/// multi-device selection.
-///
+/// multi-device selection.///
 /// Returns [`DeviceError::Unsupported`] for unknown names and
 /// [`DeviceError::LibraryUnavailable`] when the vendor library is missing.
 /// The sound card backend is not a [`Device`] and must be opened through

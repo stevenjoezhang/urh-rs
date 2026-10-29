@@ -260,6 +260,10 @@ pub struct CaptureConfig {
     // rtl-tcp only:
     pub host: Option<String>,
     pub port: Option<u16>,
+    // native backends only: which connected device to open (USB serial /
+    // index; None = first connected device). Mirrors the original URH's
+    // comboBoxDeviceIdentifier.
+    pub identifier: Option<String>,
 }
 
 pub struct CaptureHandle {
@@ -275,6 +279,7 @@ pub struct CaptureStats {
 
 impl SignalRepository {           // DeviceManager lives inside the repo
     fn list_devices(&self) -> Vec<DeviceInfo>;
+    fn list_device_ids(&self, device: &str) -> Result<Vec<String>, AppError>;
     fn start_capture(&self, cfg: &CaptureConfig) -> Result<CaptureHandle, AppError>;
     fn stop_capture(&self, capture_id: &str) -> Result<CaptureStats, AppError>;
     fn capture_stats(&self, capture_id: &str) -> Result<CaptureStats, AppError>;
@@ -394,6 +399,7 @@ cancel_analysis(job_id: u32) -> bool
 run_awre(signal_id, range_start: Option<u64>, range_end: Option<u64>,
          params: AnalysisParams) -> FieldLabel[]
 list_devices() -> DeviceInfo[]
+list_device_ids(device: String) -> String[]
 start_capture(config: CaptureConfig) -> CaptureHandle
 stop_capture(capture_id: String) -> CaptureStats
 capture_stats(capture_id: String) -> CaptureStats

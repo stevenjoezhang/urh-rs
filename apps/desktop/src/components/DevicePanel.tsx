@@ -47,11 +47,13 @@ function CaptureInput(props: {
 
 export function DevicePanel(props: DevicePanelProps): JSX.Element {
   const { capture } = props;
-  const { fields, devices, status, active, stats, error, paramError, droppedPreview } = capture;
+  const { fields, devices, deviceIds, status, active, stats, error, paramError, droppedPreview } = capture;
 
   const running = status !== "idle";
   const controlsLocked = running || devices.length === 0;
   const isRtlTcp = fields.device === RTL_TCP_DEVICE;
+  const selected = devices.find((d) => d.name === fields.device);
+  const isNative = selected !== undefined && selected.backend === "native-dlopen";
   const duration =
     active !== null && stats !== null && active.sampleRate > 0
       ? formatDuration(stats.recordedSamples / active.sampleRate)
@@ -99,6 +101,42 @@ export function DevicePanel(props: DevicePanelProps): JSX.Element {
             : devices.every((d) => !d.available)
               ? "all devices unavailable"
               : "unavailable devices are disabled"}
+        </span>
+      </div>
+
+      <div className="panel-section">
+        <div className="panel-title">Device identifier</div>
+        <div className="identifier-row">
+          <select
+            className="param-select"
+            aria-label="Device identifier"
+            value={fields.deviceIdentifier}
+            disabled={controlsLocked || !isNative}
+            onChange={(e) => capture.setField("deviceIdentifier", e.target.value)}
+          >
+            <option value="">first connected device</option>
+            {deviceIds.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+            {fields.deviceIdentifier !== "" && !deviceIds.includes(fields.deviceIdentifier) && (
+              <option value={fields.deviceIdentifier}>{fields.deviceIdentifier}</option>
+            )}
+          </select>
+          <button
+            type="button"
+            disabled={controlsLocked || !isNative}
+            title="Re-enumerate the connected devices of this backend"
+            onClick={() => void capture.refreshDeviceIds(fields.device)}
+          >
+            ⟳
+          </button>
+        </div>
+        <span className="param-hint">
+          {isNative
+            ? "which connected device to open (serial / index)"
+            : "native backends only"}
         </span>
       </div>
 
