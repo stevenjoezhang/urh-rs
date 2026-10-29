@@ -10,8 +10,14 @@ num-complex = "0.4"
 num-traits = "0.2"
 thiserror = "2"
 libloading = "0.8"
-cpal = "0.15"
+cpal = { version = "0.15", optional = true }
 quick-xml = "0.36"
+
+[features]
+# Sound card backend (cpal) is the only build-time-linked native dependency
+# (CoreAudio/WASAPI/ALSA). Off by default so the crate builds with zero
+# system deps; enable with `--features soundcard`.
+soundcard = ["dep:cpal"]
 
 [[bin]]
 name = "urh-cli"

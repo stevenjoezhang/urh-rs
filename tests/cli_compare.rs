@@ -250,6 +250,13 @@ fn compare_file(name: &str) {
 
 #[test]
 fn compare_with_python_reference() {
+    if !Path::new(&urh_ref_src()).exists() {
+        eprintln!(
+            "urh reference sources not found at {} (set URH_REF_SRC) -> skipping Python comparison",
+            urh_ref_src()
+        );
+        return;
+    }
     if !ensure_python() {
         eprintln!("/tmp/urh-venv unavailable and rebuild failed -> skipping Python comparison");
         return;

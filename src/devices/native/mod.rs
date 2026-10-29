@@ -27,6 +27,7 @@ pub mod limesdr;
 pub mod plutosdr;
 pub mod rtlsdr;
 pub mod sdrplay;
+#[cfg(feature = "soundcard")]
 pub mod soundcard;
 pub mod usrp;
 

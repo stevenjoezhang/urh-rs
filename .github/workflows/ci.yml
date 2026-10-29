@@ -23,6 +23,8 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      # Default features: no native build deps at all (soundcard/cpal is an
+      # opt-in feature, exercised by the soundcard job below).
       - name: Build (debug + release)
         run: |
           cargo build --all-targets
@@ -48,6 +50,81 @@ jobs:
       - name: CLI smoke
         shell: bash
         run: cargo run --quiet --bin urh-cli -- analyze tests/data/ask.complex
+
+  # Opt-in soundcard feature (cpal -> CoreAudio/WASAPI/ALSA). Needs
+  # libasound2-dev on Linux; nothing extra on macOS/Windows.
+  soundcard:
+    name: soundcard feature (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install ALSA headers (linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev
+      - name: Build + test with soundcard feature
+        run: |
+          cargo build --features soundcard
+          cargo test --features soundcard --lib -- devices
+
+  # sdrbuild-style job: install the *real* vendor driver libraries and run
+  # the native device backend tests, so the dlopen paths are exercised with
+  # actual libraries present instead of only the LibraryUnavailable path.
+  # Without physical hardware open() must fail cleanly (OpenFailed) and
+  # device_list() must not panic — that is exactly what these tests assert
+  # via their lib_present() branches.
+  drivers:
+    name: driver-present dlopen (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install vendor libraries (linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libhackrf-dev librtlsdr-dev libbladerf-dev liblimesuite-dev \
+            libiio-dev libuhd-dev libairspy-dev
+      # SDRPlay has no distro package (license-restricted download); it stays
+      # covered by the LibraryUnavailable path here and by real-hardware
+      # testing on a machine with the SDRplay API installed.
+
+      # The driver DLLs URH's own CI uses for its Windows tests — same
+      # artifacts jopohl/urh fetches from the sdrbuild repository.
+      - name: Fetch Windows drivers (windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          curl -sL --retry 3 -o windrivers.zip \
+            https://github.com/jopohl/sdrbuild/releases/download/v1.1/win-x64.zip
+          mkdir -p drivers
+          unzip -q windrivers.zip -d drivers
+          find drivers -name '*.dll' | head -50
+
+      - name: Run device backend tests with libraries present
+        if: runner.os == 'Linux'
+        run: cargo test --lib -- devices::native --nocapture --test-threads=1
+
+      - name: Run device backend tests with libraries present (windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          DLLDIR=$(dirname "$(find drivers -name 'hackrf.dll' | head -1)")
+          echo "dll dir: $DLLDIR"
+          export PATH="$DLLDIR:$PATH"
+          cargo test --lib -- devices::native --nocapture --test-threads=1
 
   clippy:
     runs-on: ubuntu-latest
