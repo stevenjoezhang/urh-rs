@@ -1,6 +1,12 @@
 # urh-core
 
+[![CI](https://github.com/stevenjoezhang/urh-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/stevenjoezhang/urh-rs/actions/workflows/ci.yml)
+
+A Rust port of the signal-processing core of the [Universal Radio Hacker (URH)](https://github.com/jopohl/urh). URH is archived; this project transplants its core module by module, with behavior verified bit-for-bit / sample-for-sample against measured output of the original Python implementation. The Qt GUI is not (yet) ported.
+
 [Universal Radio Hacker (URH)](https://github.com/jopohl/urh) 的 Rust 转写。URH 已归档；本项目逐模块移植其信号处理核心，行为与原版逐位/逐样本对齐（以原版 Python 实测输出为真值验收）。GUI 不在范围内。
+
+**License**: Apache-2.0, same as upstream URH. This is a derivative work of jopohl/urh; the original copyright and license apply to the ported algorithms and design (see `LICENSE`).
 
 ## 模块
 
@@ -38,7 +44,7 @@ cargo run --bin urh-cli -- info|analyze|participants <file.complex> [--sample-ra
 ## 测试与行为一致性
 
 `cargo test` — 单元 + 集成测试。验收原则：**与原版实测对照，不与直觉对照**：
-- `tests/cli_compare.rs`：对 ask/fsk/ASK_mod/ask_short.complex 跑原版 Python（`~/urh-ref` + venv）与 Rust CLI，断言调制/bit_length/消息比特长序列全等，center/noise/pause 容差内（实测逐位一致）
+- `tests/cli_compare.rs`：对 ask/fsk/ASK_mod/ask_short.complex 跑原版 Python（`URH_REF_SRC` 指向的原版源码 + venv）与 Rust CLI，断言调制/bit_length/消息比特长序列全等，center/noise/pause 容差内（实测逐位一致）
 - `tests/awre_real_protocols.rs`：35_messages / ack_frames_with_crc / with_checksum / without_preamble 四个真实协议，字段推断结果（位置/长度/地址值/成员归属）与原版 FormatFinder 实测一致
 - 原版上游 bug（`get_crc_datarange` 索引、`median_filter` 窗口、`bit_end` 溢出回绕等）原样保留并注释，保证行为可对照
 
@@ -46,6 +52,8 @@ cargo run --bin urh-cli -- info|analyze|participants <file.complex> [--sample-ra
 
 macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Radio 后端（dev/gr）。simulator 规则引擎核心已移植（表达式解析器/规则-动作/引擎/配置 XML，GUI 场景项除外）。
 
-## 原版参考环境
+## 原版参考环境（可选，用于跑 Python 真值对照）
 
-`~/urh-ref`（只读 clone）。Python 真值环境：`python3 -m venv /tmp/urh-venv && /tmp/urh-venv/bin/pip install numpy psutil PyQt6 cython setuptools`，Cython 扩展已 `build_ext --inplace`。
+任选目录 clone 原版：`git clone https://github.com/jopohl/urh <urh-ref>`，然后
+`python3 -m venv /tmp/urh-venv && /tmp/urh-venv/bin/pip install numpy psutil PyQt6 cython setuptools && cd <urh-ref> && /tmp/urh-venv/bin/python setup.py build_ext --inplace`。
+`tests/cli_compare.rs` 通过 `URH_REF_SRC` 环境变量定位原版源码（默认 `../urh-ref/src`），环境缺失时自动跳过。CI 中该步骤仅在 Linux 上执行。
