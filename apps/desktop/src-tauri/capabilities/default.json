@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "urh main window: core commands + the file-open dialog. Everything else goes through our own Rust commands, which validate their arguments.",
+  "windows": ["main"],
+  "permissions": ["core:default", "dialog:default"]
+}

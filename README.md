@@ -52,6 +52,16 @@ cargo run --bin urh-cli -- info|analyze|participants <file.complex> [--sample-ra
 
 macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Radio 后端（dev/gr）。simulator 规则引擎核心已移植（表达式解析器/规则-动作/引擎/配置 XML，GUI 场景项除外）。
 
+## GUI（进行中）
+
+原版 Qt GUI 不做像素级复刻，而是以 Tauri 2 + React + WebGL2 重建桌面应用，DSP 全部保留在本 crate。架构方案见 [docs/gui-architecture.md](docs/gui-architecture.md)，跨层 IPC 契约见 [docs/ipc-contract.md](docs/ipc-contract.md)，决策记录见 [docs/adr/](docs/adr/)。
+
+```sh
+cargo test -p urh-app       # 应用服务层（波形 envelope 等）
+cd apps/desktop && npm run build && npm test   # 前端（需 node）
+cargo check -p urh-desktop  # Tauri 壳（Linux 需 webkit2gtk-4.1-dev）
+```
+
 ## 原版参考环境（可选，用于跑 Python 真值对照）
 
 任选目录 clone 原版：`git clone https://github.com/jopohl/urh <urh-ref>`，然后
