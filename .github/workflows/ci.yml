@@ -163,7 +163,7 @@ jobs:
         shell: bash
         run: |
           git clone --depth 1 https://github.com/airspy/airspyone_host work/airspy
-          cmake -S work/airspy -B work/airspy/build -A x64 -DCMAKE_BUILD_TYPE=Release \
+          cmake -S work/airspy -B work/airspy/build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DLIBUSB_LIBRARIES=$PWD/work/libusb/VS2019/MS64/Release/lib/libusb-1.0.lib \
             -DLIBUSB_INCLUDE_DIR=$PWD/work/libusb/include/libusb-1.0 \
             -DTHREADS_PTHREADS_INCLUDE_DIR=$PWD/work/pthreads/Pre-built.2/include \
@@ -176,7 +176,7 @@ jobs:
         shell: bash
         run: |
           git clone --branch v2024.02.1 --depth 1 https://github.com/greatscottgadgets/hackrf work/hackrf
-          cmake -S work/hackrf/host -B work/hackrf/host/build -A x64 -DCMAKE_BUILD_TYPE=Release \
+          cmake -S work/hackrf/host -B work/hackrf/host/build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DLIBUSB_LIBRARIES=$PWD/work/libusb/VS2019/MS64/Release/lib/libusb-1.0.lib \
             -DLIBUSB_INCLUDE_DIR=$PWD/work/libusb/include/libusb-1.0 \
             -DTHREADS_PTHREADS_INCLUDE_DIR=$PWD/work/pthreads/Pre-built.2/include \
@@ -191,7 +191,7 @@ jobs:
         shell: bash
         run: |
           git clone --depth 1 https://github.com/osmocom/rtl-sdr work/rtlsdr
-          cmake -S work/rtlsdr -B work/rtlsdr/build -A x64 -DCMAKE_BUILD_TYPE=Release \
+          cmake -S work/rtlsdr -B work/rtlsdr/build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DLIBUSB_LIBRARIES=$PWD/work/libusb/VS2019/MS64/Release/lib/libusb-1.0.lib \
             -DLIBUSB_INCLUDE_DIRS=$PWD/work/libusb/include/libusb-1.0 \
             -DTHREADS_PTHREADS_INCLUDE_DIR=$PWD/work/pthreads/Pre-built.2/include \
@@ -207,7 +207,7 @@ jobs:
             http://downloads.myriadrf.org/project/limesuite/appveyor/FX3SDK.zip
           7z x work/FX3SDK.zip -owork/fx3sdk > /dev/null
           git clone --depth 1 https://github.com/myriadrf/LimeSuite work/limesuite
-          cmake -S work/limesuite -B work/limesuite/build -A x64 -DCMAKE_BUILD_TYPE=Release \
+          cmake -S work/limesuite -B work/limesuite/build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
             -DENABLE_GUI=OFF -DFX3_SDK_PATH=$PWD/work/fx3sdk
           cmake --build work/limesuite/build --parallel --config Release
           cmake --install work/limesuite/build --prefix $PWD/dist --config Release
