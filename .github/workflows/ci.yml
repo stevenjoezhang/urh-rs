@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build (debug + release)
+        run: |
+          cargo build --all-targets
+          cargo build --release --bin urh-cli
+
+      - name: Test
+        run: cargo test --no-fail-fast
+
+      # The python ground-truth comparison in tests/cli_compare.rs needs the
+      # original URH sources and a venv; it skips itself when unavailable.
+      # Run it on one Linux job where we set that up.
+      - name: Python ground-truth compare (linux only)
+        if: runner.os == 'Linux'
+        env:
+          URH_REF_SRC: /home/runner/urh-ref/src
+        run: |
+          python3 -m venv /tmp/urh-venv
+          /tmp/urh-venv/bin/pip install -q numpy psutil PyQt6 cython setuptools
+          git clone --depth 1 https://github.com/jopohl/urh /home/runner/urh-ref
+          cd /home/runner/urh-ref && /tmp/urh-venv/bin/python setup.py build_ext --inplace
+          cd - && cargo test --test cli_compare -- --nocapture
+
+      - name: CLI smoke
+        shell: bash
+        run: cargo run --quiet --bin urh-cli -- analyze tests/data/ask.complex
+
+  clippy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy --all-targets

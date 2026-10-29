@@ -18,12 +18,24 @@ const PY: &str = "/tmp/urh-venv/bin/python";
 const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data");
 const FILES: [&str; 4] = ["ask.complex", "fsk.complex", "ASK_mod.complex", "ask_short.complex"];
 
+/// Original URH source tree for the Python ground truth. Default is a
+/// sibling checkout (../urh-ref); override with URH_REF_SRC.
+fn urh_ref_src() -> String {
+    std::env::var("URH_REF_SRC").unwrap_or_else(|_| {
+        concat!(env!("CARGO_MANIFEST_DIR"), "/../urh-ref/src").to_string()
+    })
+}
+
 /// The Python reference pipeline, printing exactly the format of
 /// `urh-cli analyze` so both sides share one parser.
-const PY_SCRIPT: &str = r#"
+fn py_script() -> String {
+    format!(
+        r#"
 import sys
-sys.path.insert(0, '/Users/mimi/urh-ref/src')
-
+sys.path.insert(0, "{}")
+"#,
+        urh_ref_src()
+    ) + r#"
 from urh.signalprocessing.Signal import Signal
 from urh.ainterpretation import AutoInterpretation
 from urh.signalprocessing.ProtocolAnalyzer import ProtocolAnalyzer
@@ -53,7 +65,8 @@ print("messages: {}".format(len(pa.messages)))
 print("index\tbits\tpause\thex")
 for i, m in enumerate(pa.messages):
     print("{}\t{}\t{}\t{}".format(i, len(m), int(m.pause), m.plain_hex_str))
-"#;
+"#
+}
 
 #[derive(Debug, Default, Clone)]
 struct AnalysisOutput {
@@ -138,7 +151,7 @@ fn run_python(file: &str) -> AnalysisOutput {
     let output = Command::new(PY)
         .arg("-I")
         .arg("-c")
-        .arg(PY_SCRIPT)
+        .arg(py_script())
         .arg(file)
         .current_dir(std::env::temp_dir())
         .output()
