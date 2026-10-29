@@ -386,7 +386,7 @@ impl Message {
         let mut last_alignment = 0;
         for &ba in &self.bit_alignments() {
             if ba <= bit_index {
-                result += (ba - last_alignment + factor - 1) / factor; // ceil
+                result += (ba - last_alignment).div_ceil(factor); // ceil
                 last_alignment = ba;
             } else {
                 break;
@@ -509,7 +509,7 @@ impl ProtocolAnalyzer {
     /// Build messages from bit sequences and their pauses.
     pub fn messages_from_bits(&mut self, bit_data: Vec<Vec<Bit>>, pauses: Vec<u64>) {
         self.messages.clear();
-        for (bits, pause) in bit_data.into_iter().zip(pauses.into_iter()) {
+        for (bits, pause) in bit_data.into_iter().zip(pauses) {
             let mut msg = Message::new(bits, pause);
             msg.message_type = self
                 .message_types
@@ -546,7 +546,7 @@ impl ProtocolAnalyzer {
             bits_per_symbol,
             center_spacing,
         );
-        let ppseq: Vec<(i64, i64)> = states.into_iter().zip(lens.into_iter()).collect();
+        let ppseq: Vec<(i64, i64)> = states.into_iter().zip(lens).collect();
         self.set_messages_from_ppseq(&ppseq, samples_per_symbol, bits_per_symbol, pause_threshold);
     }
 
@@ -589,7 +589,7 @@ impl ProtocolAnalyzer {
             if cur_pulse_type == PAUSE_TYPE {
                 // OOK
                 if num_symbols <= pause_threshold as u64 || pause_threshold == 0 {
-                    data_bits.extend(std::iter::repeat(0).take((num_symbols * bits_per_symbol as u64) as usize));
+                    data_bits.extend(std::iter::repeat_n(0, (num_symbols * bits_per_symbol as u64) as usize));
                     bit_sampl_pos.extend(
                         (0..num_symbols * bits_per_symbol as u64)
                             .map(|k| total_samples + k * samples_per_bit),
@@ -661,7 +661,7 @@ impl ProtocolAnalyzer {
             .map(|mt| mt.name.clone())
             .unwrap_or_else(|| "Default".to_string());
 
-        for (i, (bits, pause)) in bit_data.into_iter().zip(pauses.into_iter()).enumerate() {
+        for (i, (bits, pause)) in bit_data.into_iter().zip(pauses).enumerate() {
             let mut msg = Message::new(bits, pause);
             msg.message_type = type_name.clone();
             msg.samples_per_symbol = samples_per_symbol;
@@ -683,10 +683,10 @@ impl ProtocolAnalyzer {
             let sps = self.messages[i].samples_per_symbol as u64;
             if missing_bits > 0
                 && self.messages[i].pause >= sps * missing_bits as u64
-                && self.messages[i].plain_bits.len() % divisor != 0
+                && !self.messages[i].plain_bits.len().is_multiple_of(divisor)
             {
                 let msg = &mut self.messages[i];
-                msg.plain_bits.extend(std::iter::repeat(0).take(missing_bits));
+                msg.plain_bits.extend(std::iter::repeat_n(0, missing_bits));
                 msg.pause -= missing_bits as u64 * sps;
                 let n = msg.bit_sample_pos.len();
                 if n >= 2 {
@@ -798,7 +798,7 @@ mod tests {
     fn test_decoded_bits_file() {
         // reference data: tests/data/decoded_bits.txt (one message per line)
         let content = std::fs::read_to_string(format!(
-            "{}/../urh-ref/tests/data/decoded_bits.txt",
+            "{}/tests/data/decoded_bits.txt",
             env!("CARGO_MANIFEST_DIR")
         ))
         .expect("decoded_bits.txt");
@@ -928,7 +928,7 @@ mod tests {
         // 1011 with 100 samples per bit, separated by a 1000 sample pause
         let mut qad: Vec<f32> = Vec::new();
         let push = |state: f32, n: usize, qad: &mut Vec<f32>| {
-            qad.extend(std::iter::repeat(state).take(n));
+            qad.extend(std::iter::repeat_n(state, n));
         };
         push(1.0, 100, &mut qad);
         push(0.0, 100, &mut qad);

@@ -189,7 +189,7 @@ mod tests {
     use super::*;
     use crate::iq::IqArray;
 
-    const DATA_DIR: &str = "/Users/mimi/urh-ref/tests/data/";
+    const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/");
 
     // Port of the shape checks of tests/SpectrogramTest.py
     #[test]

@@ -687,7 +687,7 @@ pub fn demod_to_bits(
         if cur_pulse_type == PAUSE_STATE {
             // OOK
             if num_symbols <= pause_threshold || pause_threshold == 0 {
-                data_bits.extend(std::iter::repeat(0u8).take((num_symbols * bits_per_symbol as i64) as usize));
+                data_bits.extend(std::iter::repeat_n(0u8, (num_symbols * bits_per_symbol as i64) as usize));
             } else if !there_was_data {
                 // Ignore this pause, if there were no information transmitted previously
                 data_bits.clear();
@@ -866,7 +866,7 @@ mod tests {
         assert_eq!(result.len(), 9 * 100 + 1000);
 
         // zero bits are silent (bits[1] == 0 -> samples 100..199)
-        for i in (1 * 100)..(2 * 100) {
+        for i in 100..(2 * 100) {
             assert_eq!(result[i], Complex32::new(0.0, 0.0));
         }
 
@@ -898,7 +898,7 @@ mod tests {
     // ---- real data tests ----
 
     fn data_path(name: &str) -> String {
-        format!("/Users/mimi/urh-ref/tests/data/{}", name)
+        format!("{}/tests/data/{}", env!("CARGO_MANIFEST_DIR"), name)
     }
 
     #[test]

@@ -187,11 +187,7 @@ impl<'a> SequenceNumberEngine<'a> {
                 unique.len() > 2
             })
             .map(|mut r| {
-                if r.byte_order != Some(false) {
-                    r.rng.byte_order_big = true;
-                } else {
-                    r.rng.byte_order_big = false;
-                }
+                r.rng.byte_order_big = r.byte_order != Some(false);
                 r.rng
             })
             .collect()
@@ -283,7 +279,7 @@ mod tests {
         ff.perform_iteration();
         let message_types = ff.message_types();
         assert_eq!(message_types.len(), 1);
-        assert!(message_types[0].len() > 0);
+        assert!(!message_types[0].is_empty());
         assert_eq!(
             message_types[0].num_labels_with_type(FieldFunction::SequenceNumber),
             1
@@ -333,7 +329,7 @@ mod tests {
 
         let message_types = ff.message_types();
         assert_eq!(message_types.len(), 1);
-        assert!(message_types[0].len() > 0);
+        assert!(!message_types[0].is_empty());
         assert_eq!(
             message_types[0].num_labels_with_type(FieldFunction::SequenceNumber),
             1
@@ -383,7 +379,7 @@ mod tests {
         ff.perform_iteration();
         let message_types = ff.message_types();
         assert_eq!(message_types.len(), 1);
-        assert!(message_types[0].len() > 0);
+        assert!(!message_types[0].is_empty());
         assert_eq!(
             message_types[0].num_labels_with_type(FieldFunction::SequenceNumber),
             1

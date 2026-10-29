@@ -230,7 +230,7 @@ impl Preprocessor {
             }
         }
 
-        if estimated_sync_length % 8 != 0 {
+        if !estimated_sync_length.is_multiple_of(8) {
             let mut sorted_scores = lengths.clone();
             sorted_scores.sort_by(|a, b| {
                 b.1.partial_cmp(&a.1)
@@ -597,7 +597,7 @@ mod tests {
 
     fn read_bit_file(name: &str) -> Vec<Vec<u8>> {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../urh-ref/tests/data")
+            .join("tests/data")
             .join(name);
         let content = std::fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("cannot read {name}: {e}"));

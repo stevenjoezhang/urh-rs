@@ -851,11 +851,10 @@ impl Device for UsrpDevice {
                 for pair in buff[..2 * items_received.min(max_samps)].chunks_exact(2) {
                     acc.push(crate::Complex32::new(pair[0], pair[1]));
                 }
-                if acc.len() >= chunk_size {
-                    if sink.send(std::mem::take(&mut acc)).is_err() {
+                if acc.len() >= chunk_size
+                    && sink.send(std::mem::take(&mut acc)).is_err() {
                         break; // receiver gone
                     }
-                }
             }
         }));
         Ok(())

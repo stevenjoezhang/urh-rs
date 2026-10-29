@@ -122,12 +122,11 @@ fn parse_common(args: &[String]) -> Result<CommonArgs, String> {
 
 fn load_iq(path: &str) -> Result<IqArray, String> {
     let format = IqFormat::from_filename(path);
-    IqArray::from_file(path).map_err(|e| format!("cannot read {path}: {e}")).map(|arr| {
+    IqArray::from_file(path).map_err(|e| format!("cannot read {path}: {e}")).inspect(|arr| {
         if arr.is_empty() {
             // keep going; empty signals produce zero messages like the reference
         }
         let _ = format;
-        arr
     })
 }
 

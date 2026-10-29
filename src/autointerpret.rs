@@ -1001,10 +1001,7 @@ pub fn estimate_with_noise(iq: &[Complex32], noise: Option<f32>) -> Option<Inter
 
     let center = if modulation == Modulation::Ask {
         // for ask modulations the center tends to be the minimum of all found centers
-        match min_without_outliers(&centers, 2.0) {
-            Some(c) => c,
-            None => return None,
-        }
+        min_without_outliers(&centers, 2.0)?
     } else if !centers.is_empty() {
         mean_f64(&centers)
     } else {
@@ -1047,7 +1044,7 @@ mod tests {
     }
 
     pub(crate) fn data_path(name: &str) -> String {
-        format!("{}/../urh-ref/tests/data/{}", env!("CARGO_MANIFEST_DIR"), name)
+        format!("{}/tests/data/{}", env!("CARGO_MANIFEST_DIR"), name)
     }
 
     #[test]

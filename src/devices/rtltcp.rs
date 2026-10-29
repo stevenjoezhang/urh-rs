@@ -164,7 +164,7 @@ impl Device for RtlTcpDevice {
 
     fn set_parameter(&mut self, cmd: Command, value: f64) -> Result<(), DeviceError> {
         let rtl_cmd = rtl_tcp_command(cmd)
-            .ok_or_else(|| DeviceError::Unsupported("command not supported by rtl_tcp"))?;
+            .ok_or(DeviceError::Unsupported("command not supported by rtl_tcp"))?;
         // Values are integers (Hz, 0.1 dB, ppm, ...); negative gains travel as
         // their two's-complement bit pattern, like Python's to_bytes(4, "big").
         let value = value.round() as i64 as i32 as u32;
@@ -193,7 +193,7 @@ impl Device for RtlTcpDevice {
         )?;
         self.set_raw(
             RtlTcpCommand::SetDirectSampling as u8,
-            config.direct_sampling_mode as i32 as u32,
+            config.direct_sampling_mode as u32,
         )?;
         self.set_raw(
             RtlTcpCommand::SetBiasTee as u8,

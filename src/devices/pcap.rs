@@ -130,7 +130,7 @@ pub fn parse_pcapng(bytes: &[u8]) -> Result<Vec<PcapPacket>, DeviceError> {
         }
         let block_type = u32_at(bytes, off, big_endian).unwrap();
         let total_len = u32_at(bytes, off + 4, big_endian).unwrap() as usize;
-        if total_len < 12 || off + total_len > bytes.len() || total_len % 4 != 0 {
+        if total_len < 12 || off + total_len > bytes.len() || !total_len.is_multiple_of(4) {
             return Err(DeviceError::StreamError(
                 "pcapng block has invalid length".into(),
             ));
@@ -273,7 +273,7 @@ pub fn write_pcapng(filename: &str, iq_bytes: &[u8]) -> Result<(), DeviceError> 
     // Enhanced Packet Block (timestamp resolution 1e-6, as in PCAPNG.py).
     const EPB: u32 = 0x00000006;
     let caplen = iq_bytes.len() as u32;
-    let padded = (iq_bytes.len() + 3) / 4 * 4;
+    let padded = iq_bytes.len().div_ceil(4) * 4;
     let total: u32 = 32 + padded as u32;
     out.extend_from_slice(&EPB.to_be_bytes());
     out.extend_from_slice(&total.to_be_bytes());

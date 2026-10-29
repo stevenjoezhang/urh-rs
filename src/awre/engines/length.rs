@@ -26,7 +26,7 @@ impl<'a> LengthEngine<'a> {
         // Consider the n_gram_length
         let mut bitvectors_by_n_gram_length: Clusters<usize> = Vec::new();
         for (i, bitvector) in self.bitvectors.iter().enumerate() {
-            let bin_num = (bitvector.len() + n_gram_length - 1) / n_gram_length;
+            let bin_num = bitvector.len().div_ceil(n_gram_length);
             match bitvectors_by_n_gram_length
                 .iter_mut()
                 .find(|(k, _)| *k == bin_num)
@@ -293,7 +293,7 @@ impl<'a> LengthEngine<'a> {
 
     pub fn score_bits(bits: &[u8], target_length: usize, position: usize, byte_order_big: bool) -> f64 {
         let mut value = bit_array_to_number(bits, bits.len() as i64, 0);
-        if !byte_order_big && bits.len() > 8 && bits.len() % 8 == 0 {
+        if !byte_order_big && bits.len() > 8 && bits.len().is_multiple_of(8) {
             let n = bits.len() / 8;
             let bytes = value.to_be_bytes(); // big endian bytes of value
             // int.from_bytes(value.to_bytes(n, "big"), "little")
@@ -363,7 +363,7 @@ mod tests {
         ff.perform_iteration();
         let message_types = ff.message_types();
         assert_eq!(message_types.len(), 1);
-        assert!(message_types[0].len() > 0);
+        assert!(!message_types[0].is_empty());
         let label = message_types[0]
             .get_first_label_with_type(FieldFunction::Length)
             .unwrap();
@@ -417,7 +417,7 @@ mod tests {
         ff.perform_iteration();
         let message_types = ff.message_types();
         assert_eq!(message_types.len(), 1);
-        assert!(message_types[0].len() > 0);
+        assert!(!message_types[0].is_empty());
         let label = message_types[0]
             .get_first_label_with_type(FieldFunction::Length)
             .unwrap();
@@ -513,7 +513,7 @@ mod tests {
         ff.perform_iteration();
         let message_types = ff.message_types();
         assert_eq!(message_types.len(), 1);
-        assert!(message_types[0].len() > 0);
+        assert!(!message_types[0].is_empty());
         let label = message_types[0]
             .get_first_label_with_type(FieldFunction::Length)
             .unwrap();

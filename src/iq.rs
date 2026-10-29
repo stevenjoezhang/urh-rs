@@ -296,7 +296,7 @@ mod tests {
     use super::*;
     use num_complex::Complex;
 
-    const DATA_DIR: &str = "/Users/mimi/urh-ref/tests/data/";
+    const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/");
 
     #[test]
     fn test_bit_array_to_number() {
@@ -433,7 +433,7 @@ mod tests {
             let file_size = std::fs::metadata(&path).unwrap().len() as usize;
             // int8: 2 bytes per complex sample
             assert_eq!(arr.len(), file_size / 2);
-            assert!(arr.len() > 0);
+            assert!(!arr.is_empty());
             assert!(arr.magnitudes().iter().any(|m| *m > 0.01));
 
             let tmp = std::env::temp_dir().join("urh_rs_test_16s.complex16s");
@@ -460,7 +460,7 @@ mod tests {
         let file_size = std::fs::metadata(&path).unwrap().len() as usize;
         // int16: 4 bytes per complex sample
         assert_eq!(arr.len(), file_size / 4);
-        assert!(arr.len() > 0);
+        assert!(!arr.is_empty());
         assert!(arr.magnitudes().iter().any(|m| *m > 0.01));
 
         let tmp = std::env::temp_dir().join("urh_rs_test_32s.complex32s");

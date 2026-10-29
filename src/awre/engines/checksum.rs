@@ -119,7 +119,7 @@ impl<'a> ChecksumEngine<'a> {
         let mut bitvectors_by_n_gram_length: Clusters<usize> = Vec::new();
         for (i, bitvector) in self.bitvectors.iter().enumerate() {
             let bin_num =
-                (bitvector.len() + self.n_gram_length - 1) / self.n_gram_length;
+                bitvector.len().div_ceil(self.n_gram_length);
             match bitvectors_by_n_gram_length
                 .iter_mut()
                 .find(|(k, _)| *k == bin_num)

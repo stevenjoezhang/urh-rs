@@ -405,10 +405,7 @@ fn parse_protocol_xml(text: &str) -> Result<ProtocolData, ProtoXmlError> {
     let mut stack: Vec<String> = Vec::new();
 
     loop {
-        let ev = match reader.read_event() {
-            Ok(e) => e,
-            Err(e) => return Err(e.into()),
-        };
+        let ev = reader.read_event()?;
         match ev {
             Event::Start(e) => {
                 let name = e.name().as_ref().to_vec();
@@ -421,10 +418,10 @@ fn parse_protocol_xml(text: &str) -> Result<ProtocolData, ProtoXmlError> {
                         let mt = XmlMessageType {
                             name: attrs.get("name").cloned().unwrap_or_else(|| "blank".into()),
                             id: attrs.get("id").cloned().unwrap_or_default(),
-                            assigned_by_ruleset: attrs.get("assigned_by_ruleset").map_or(false, |v| v == "1"),
+                            assigned_by_ruleset: attrs.get("assigned_by_ruleset").is_some_and(|v| v == "1"),
                             assigned_by_logic_analyzer: attrs
                                 .get("assigned_by_logic_analyzer")
-                                .map_or(false, |v| v == "1"),
+                                .is_some_and(|v| v == "1"),
                             labels: Vec::new(),
                         };
                         data.message_types.push(mt);
@@ -437,7 +434,7 @@ fn parse_protocol_xml(text: &str) -> Result<ProtocolData, ProtoXmlError> {
                             color_index: attrs.get("color_index").and_then(|v| v.parse().ok()).unwrap_or(0),
                             id: attrs.get("id").cloned().unwrap_or_default(),
                             relative_rssi: attrs.get("relative_rssi").and_then(|v| v.parse().ok()).unwrap_or(0),
-                            simulate: attrs.get("simulate").and_then(|v| v.parse::<i32>().ok()).map_or(false, |v| v != 0),
+                            simulate: attrs.get("simulate").and_then(|v| v.parse::<i32>().ok()).is_some_and(|v| v != 0),
                         };
                         data.participants.push(p);
                     }
@@ -466,7 +463,7 @@ fn parse_protocol_xml(text: &str) -> Result<ProtocolData, ProtoXmlError> {
                             color_index: attrs.get("color_index").and_then(|v| v.parse().ok()).unwrap_or(0),
                             id: attrs.get("id").cloned().unwrap_or_default(),
                             relative_rssi: attrs.get("relative_rssi").and_then(|v| v.parse().ok()).unwrap_or(0),
-                            simulate: attrs.get("simulate").and_then(|v| v.parse::<i32>().ok()).map_or(false, |v| v != 0),
+                            simulate: attrs.get("simulate").and_then(|v| v.parse::<i32>().ok()).is_some_and(|v| v != 0),
                         };
                         data.participants.push(p);
                     }
@@ -559,7 +556,7 @@ fn xml_label_from_attrs(attrs: &std::collections::HashMap<String, String>) -> Xm
 mod tests {
     use super::*;
 
-    const DATA_DIR: &str = "/Users/mimi/urh-ref/tests/data/";
+    const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/");
 
     fn load(name: &str) -> ProtocolData {
         load_protocol(format!("{DATA_DIR}{name}")).expect("load")

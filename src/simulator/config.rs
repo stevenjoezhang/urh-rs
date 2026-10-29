@@ -616,7 +616,7 @@ impl IdentifierResolver for SimulatorConfiguration {
                     // Python: get_label_range(lbl, 2, False) over plain_ascii_str
                     let ascii = bits_to_ascii_padded(&bits);
                     let cs = start / 8;
-                    let ce = (end + 7) / 8;
+                    let ce = end.div_ceil(8);
                     Some(Value::Str(
                         ascii.chars().skip(cs).take(ce.saturating_sub(cs)).collect(),
                     ))
@@ -638,7 +638,7 @@ impl IdentifierResolver for SimulatorConfiguration {
 
 fn bits_to_ascii_padded(bits: &[Bit]) -> String {
     let mut padded = bits.to_vec();
-    while padded.len() % 8 != 0 {
+    while !padded.len().is_multiple_of(8) {
         padded.push(0);
     }
     padded

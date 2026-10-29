@@ -52,11 +52,10 @@ pub fn find_longest_common_sub_sequence_indices(seq1: &[u8], seq2: &[u8]) -> Vec
                     longest = counter;
                     result_indices.clear();
                     result_indices.push((i as u32 + 1 - counter, i as u32 + 1));
-                } else if counter == longest {
-                    if result_indices.len() < MAX_RESULTS {
+                } else if counter == longest
+                    && result_indices.len() < MAX_RESULTS {
                         result_indices.push((i as u32 + 1 - counter, i as u32 + 1));
                     }
-                }
             }
         }
     }
@@ -255,7 +254,7 @@ pub fn find_possible_sync_words(
 
                         let sync_word =
                             bitvector[start_u..start_u + sync_len as usize].to_vec();
-                        let score = if (start_u + sync_len as usize) % n_gram_length as usize == 0
+                        let score = if (start_u + sync_len as usize).is_multiple_of(n_gram_length as usize)
                         {
                             // if sync end aligns nicely at n gram length give it a larger score
                             1.0

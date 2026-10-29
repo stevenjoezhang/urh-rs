@@ -15,7 +15,7 @@ use urh_core::awre::message_type_builder::FieldFunction;
 use urh_core::proto_xml::load_protocol;
 use urh_core::protocol::Message;
 
-const DATA_DIR: &str = "/Users/mimi/urh-ref/tests/data/";
+const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/");
 
 /// `AWRETestCase.get_format_finder_from_protocol_file` equivalent: loads the
 /// XML, clears the messages' message types (so pre-assigned labels cannot
@@ -149,7 +149,7 @@ fn test_ack_frames_with_crc() {
     // checksum position (long frames: 584, short frames: 136).
     let data_mts: Vec<_> = mts
         .iter()
-        .filter(|mt| std::ptr::eq(*mt, ack_mt) == false)
+        .filter(|mt| !std::ptr::eq(*mt, ack_mt))
         .collect();
     assert_eq!(data_mts.len(), 2);
     let mut checksum_starts: Vec<usize> = Vec::new();

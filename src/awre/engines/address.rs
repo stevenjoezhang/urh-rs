@@ -69,7 +69,7 @@ impl<'a> AddressEngine<'a> {
         // convert already labeled ranges to hex coordinates
         let already_labeled = already_labeled
             .iter()
-            .map(|&(start, end)| ((start + 3) / 4, (end + 3) / 4))
+            .map(|&(start, end)| (start.div_ceil(4), end.div_ceil(4)))
             .collect();
 
         let mut message_indices_by_participant: BTreeMap<isize, Vec<usize>> = BTreeMap::new();
@@ -596,7 +596,7 @@ impl<'a> AddressEngine<'a> {
                     addresses_by_participant
                         .insert(participant, AddrVal::Set(BTreeSet::new()));
                 }
-                Some(&(ref address, _)) => {
+                Some((address, _)) => {
                     taken_addresses.push(address.clone());
                     addresses_by_participant
                         .insert(participant, AddrVal::Single(address.clone()));
@@ -1152,7 +1152,7 @@ mod tests {
         while pg.messages.len() < 20 {
             let source = &participants[i % participants.len()];
             let destination = &participants[(i + 1) % participants.len()];
-            let data_bytes = if i % 2 == 0 { 8 } else { 16 };
+            let data_bytes = if i.is_multiple_of(2) { 8 } else { 16 };
             let data = rng.random_bits(data_bytes * 8);
             pg.generate_message(None, &data, Some(source), Some(destination));
             pg.generate_message(Some(1), "", Some(destination), Some(source));
@@ -1192,7 +1192,7 @@ mod tests {
     fn test_paper_example() {
         let alice = Participant::new("Alice");
         let bob = Participant::new("Bob");
-        let _participants = vec![alice, bob];
+        let _participants = [alice, bob];
         let messages = vec![
             Message::from_plain_hex_str("aabb1234", 0),
             Message::from_plain_hex_str("aabb6789", 0),

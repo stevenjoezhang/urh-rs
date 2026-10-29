@@ -15,7 +15,7 @@ use std::path::Path;
 use std::process::Command;
 
 const PY: &str = "/tmp/urh-venv/bin/python";
-const DATA_DIR: &str = "/Users/mimi/urh-ref/tests/data";
+const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data");
 const FILES: [&str; 4] = ["ask.complex", "fsk.complex", "ASK_mod.complex", "ask_short.complex"];
 
 /// The Python reference pipeline, printing exactly the format of

@@ -24,7 +24,7 @@ use urh_core::simulator::engine::{Simulator, SimulatorIO, SimulatorSettings};
 use urh_core::simulator::item::NodeKind;
 use urh_core::{Bit, Complex32};
 
-const PROFILE: &str = "/Users/mimi/urh-ref/tests/data/testprofile.sim.xml";
+const PROFILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/testprofile.sim.xml");
 
 // --- Ground truth captured from the original Python simulator run ---
 

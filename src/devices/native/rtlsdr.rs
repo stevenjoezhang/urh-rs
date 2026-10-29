@@ -688,9 +688,9 @@ mod tests {
         let out = convert_rtl_bytes(&[0, 127, 128, 255]);
         assert_eq!(out.len(), 2);
         assert_eq!(out[0].re, 0i8 as f32 - 127.0); // 0x00 -> -127
-        assert_eq!(out[0].im, 127i8 as f32 - 127.0); // 0x7F -> 0
-        assert_eq!(out[1].re, -128i8 as f32 - 127.0); // 0x80 -> -255
-        assert_eq!(out[1].im, -1i8 as f32 - 127.0); // 0xFF -> -128
+        assert_eq!(out[0].im, 127_f32 - 127.0); // 0x7F -> 0
+        assert_eq!(out[1].re, -128_f32 - 127.0); // 0x80 -> -255
+        assert_eq!(out[1].im, -1_f32 - 127.0); // 0xFF -> -128
         // odd trailing byte is dropped (chunks_exact)
         assert_eq!(convert_rtl_bytes(&[1, 2, 3]).len(), 1);
         assert!(convert_rtl_bytes(&[]).is_empty());

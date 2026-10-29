@@ -106,7 +106,7 @@ impl std::fmt::Display for ErrorState {
 
 /// 2^(n-1) - 1 as uint64; for n == 65 this is u64::MAX (all CRC bits).
 fn crc_mask_of(poly_order: usize) -> u64 {
-    if poly_order - 1 >= 64 {
+    if poly_order > 64 {
         u64::MAX
     } else {
         (1u64 << (poly_order - 1)) - 1
@@ -282,7 +282,7 @@ pub fn cached_crc(
         i += bits as usize;
     }
 
-    if len_inpt % bits as usize > 0 {
+    if !len_inpt.is_multiple_of(bits as usize) {
         // compute the rest with the normal function, using the current crc as start value
         let rem = len_inpt % bits as usize;
         let mut sv: Vec<Bit> = start_value.to_vec();
@@ -847,19 +847,12 @@ pub enum Codec {
 }
 
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct Encoding {
     pub name: String,
     pub chain: Vec<Codec>,
 }
 
-impl Default for Encoding {
-    fn default() -> Self {
-        Encoding {
-            name: String::new(),
-            chain: Vec::new(),
-        }
-    }
-}
 
 type CodecResult = (Vec<Bit>, usize, ErrorState);
 
@@ -1056,13 +1049,12 @@ impl DataWhitening {
     pub fn from_param(param: &str) -> Self {
         let mut dw = DataWhitening::default();
         let parts: Vec<&str> = param.split(';').collect();
-        if parts.len() == 3 || parts.len() == 2 {
-            if !parts[0].is_empty() && !parts[1].is_empty() {
+        if (parts.len() == 3 || parts.len() == 2)
+            && !parts[0].is_empty() && !parts[1].is_empty() {
                 dw.sync = hex2bits(parts[0]);
                 dw.polynomial = hex2bits(parts[1]);
                 dw.overwrite_crc = parts.len() == 3 && parts[2] == "1";
             }
-        }
         dw
     }
 }
@@ -1202,7 +1194,7 @@ pub fn code_redundancy(decoding: bool, multiple: u32, inpt: &[Bit]) -> CodecResu
             }
         } else {
             for &b in inpt {
-                output.extend(std::iter::repeat(b).take(multiple as usize));
+                output.extend(std::iter::repeat_n(b, multiple as usize));
             }
         }
     }
@@ -1244,7 +1236,7 @@ pub fn code_carrier(decoding: bool, carrier: &str, inpt: &[Bit]) -> CodecResult 
             x += 1;
         }
         // Consume the trailing carrier pattern avoiding any wrap around
-        while x % c.len() > 0 && matches!(c[x % c.len()], b'0' | b'1' | b'*') {
+        while !x.is_multiple_of(c.len()) && matches!(c[x % c.len()], b'0' | b'1' | b'*') {
             output.push(if c[x % c.len()] == b'1' { 1 } else { 0 });
             x += 1;
         }
@@ -1273,7 +1265,7 @@ pub fn code_substitution(
     }
     let zero_padding = (minimum_item_size - (padded_inpt.len() % minimum_item_size))
         % minimum_item_size;
-    padded_inpt.extend(std::iter::repeat(0u8).take(zero_padding));
+    padded_inpt.extend(std::iter::repeat_n(0u8, zero_padding));
     let mut errors = zero_padding;
 
     let mut output = Vec::new();
@@ -1406,15 +1398,15 @@ pub fn code_morse(decoding: bool, morse_low: u32, morse_high: u32, morse_wait: u
     } else {
         let mut i = 0usize;
         while i < inpt.len() {
-            output.extend(std::iter::repeat(0u8).take(morse_wait as usize));
+            output.extend(std::iter::repeat_n(0u8, morse_wait as usize));
             if inpt[i] != 0 {
-                output.extend(std::iter::repeat(1u8).take(morse_high as usize));
+                output.extend(std::iter::repeat_n(1u8, morse_high as usize));
             } else {
-                output.extend(std::iter::repeat(1u8).take(morse_low as usize));
+                output.extend(std::iter::repeat_n(1u8, morse_low as usize));
             }
             i += 1;
         }
-        output.extend(std::iter::repeat(0u8).take(morse_wait as usize));
+        output.extend(std::iter::repeat_n(0u8, morse_wait as usize));
     }
 
     (output, errors, ErrorState::Success)
@@ -1435,7 +1427,7 @@ impl DataWhitening {
         let len_pol = poly_full.len();
 
         if state.is_empty() {
-            state.extend(std::iter::repeat(1u8).take(len_pol));
+            state.extend(std::iter::repeat_n(1u8, len_pol));
         }
         for _ in 0..clock {
             // Determine first bit with polynomial (XOR of all poly&state taps)

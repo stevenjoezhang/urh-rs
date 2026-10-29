@@ -1053,7 +1053,7 @@ mod tests {
         let r = resolver(&[]);
         assert_eq!(evalf("2 + 3 * 4", &r), Value::Int(14));
         assert_eq!(evalf("(2 + 3) * 4", &r), Value::Int(20));
-        assert_eq!(evalf("1 | 2 ^ 3 & 4", &r), Value::Int(1 | (2 ^ (3 & 4))));
+        assert_eq!(evalf("1 | 2 ^ 3 & 4", &r), Value::Int(1 | 2));
         assert_eq!(evalf("1 << 2 + 1", &r), Value::Int(8)); // shifts bind looser than +
         assert_eq!(evalf("10 - 2 - 3", &r), Value::Int(5)); // left assoc
         assert_eq!(evalf("2 * 3 + 4 * 5", &r), Value::Int(26));
@@ -1121,14 +1121,14 @@ mod tests {
             ("item3.source_address", Value::Int(0x123)),
             ("item1.length", Value::Int(5)),
         ]);
-        assert!(evalc(
+        assert!(!evalc(
             "not (item3.source_address == 0x123 or item1.length >= 5)",
             &r
-        ) == false);
-        assert!(evalc(
+        ));
+        assert!(!evalc(
             "not (item3.source_address == 0x124 or item1.length >= 5)",
             &r
-        ) == false);
+        ));
         assert!(evalc(
             "not (item3.source_address == 0x124 and item1.length >= 5)",
             &r

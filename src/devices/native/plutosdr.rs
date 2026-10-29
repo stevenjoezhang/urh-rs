@@ -450,7 +450,7 @@ impl PlutoSdrDevice {
             let mut p = (self.api.buffer_first)(self.tx_buffer, chn) as *mut i16;
             let end = (self.api.buffer_end)(self.tx_buffer) as *mut i16;
             let step =
-                (self.api.buffer_step)(self.tx_buffer) as isize / std::mem::size_of::<i16>() as isize;
+                (self.api.buffer_step)(self.tx_buffer) / std::mem::size_of::<i16>() as isize;
 
             let flat: Vec<i16> = samples
                 .iter()
@@ -620,7 +620,7 @@ impl Device for PlutoSdrDevice {
                     }
                     let mut p = (api.buffer_first)(buffer, chn) as *const i16;
                     let end = (api.buffer_end)(buffer) as *const i16;
-                    let step = (api.buffer_step)(buffer) as isize
+                    let step = (api.buffer_step)(buffer)
                         / std::mem::size_of::<i16>() as isize;
                     let mut chunk: IqChunk = Vec::new();
                     while p < end {

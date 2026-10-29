@@ -27,7 +27,7 @@ fn bits_to_string(bits: &[crate::Bit]) -> String {
 fn bits_to_hex(bits: &[crate::Bit]) -> String {
     // Python util.convert_bits_to_string pads with zeros to a multiple of 4.
     let mut padded = bits.to_vec();
-    while padded.len() % 4 != 0 {
+    while !padded.len().is_multiple_of(4) {
         padded.push(0);
     }
     let mut s = String::new();
