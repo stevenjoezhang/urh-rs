@@ -18,7 +18,8 @@ use serde::Serialize;
 use tauri::State;
 use urh_app::{
     AnalysisParams, AnalysisResult, CaptureConfig, CaptureHandle, CaptureStats, DeviceInfo,
-    FieldLabel, GeneratorParams, SignalMeta, SignalRepository, WaveformMode,
+    FieldLabel, GeneratorParams, ProjectState, SignalMeta, SignalRepository, SimRuleInfo,
+    SimTranscriptEntry, WaveformMode,
 };
 
 /// Process-wide state: one signal repository shared by all commands.
@@ -139,7 +140,10 @@ async fn get_waveform_envelope(
 
 /// IPC-side range validation: both endpoints present and ordered, or neither.
 /// The repository re-validates against the signal's actual length.
-fn opt_range(range_start: Option<u64>, range_end: Option<u64>) -> Result<Option<(u64, u64)>, CmdError> {
+fn opt_range(
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+) -> Result<Option<(u64, u64)>, CmdError> {
     match (range_start, range_end) {
         (None, None) => Ok(None),
         (Some(start), Some(end)) if start < end => Ok(Some((start, end))),
@@ -329,7 +333,50 @@ async fn save_signal_as(
     signal_id: String,
     path: String,
 ) -> Result<(), CmdError> {
-    blocking(&state.repo, move |repo| repo.save_signal_as(&signal_id, &path)).await
+    blocking(&state.repo, move |repo| {
+        repo.save_signal_as(&signal_id, &path)
+    })
+    .await
+}
+
+// ---- v2 project + simulator commands ----
+
+// The payload key for the project body is `state` (contract), so the injected
+// Tauri `State` is bound under a different name in these commands. Tauri
+// injects `State` by type; the payload parameter is matched by its name.
+
+#[tauri::command(rename_all = "snake_case")]
+async fn save_project(
+    ctx: State<'_, AppState>,
+    path: String,
+    state: ProjectState,
+) -> Result<(), CmdError> {
+    blocking(&ctx.repo, move |repo| repo.save_project(&path, &state)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn load_project(ctx: State<'_, AppState>, path: String) -> Result<ProjectState, CmdError> {
+    blocking(&ctx.repo, move |repo| repo.load_project(&path)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn load_simulator(
+    ctx: State<'_, AppState>,
+    path: String,
+) -> Result<Vec<SimRuleInfo>, CmdError> {
+    blocking(&ctx.repo, move |repo| repo.load_simulator(&path)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn run_simulation(
+    ctx: State<'_, AppState>,
+    path: String,
+    timeout_secs: u64,
+) -> Result<Vec<SimTranscriptEntry>, CmdError> {
+    blocking(&ctx.repo, move |repo| {
+        repo.run_simulation(&path, timeout_secs)
+    })
+    .await
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -354,7 +401,11 @@ pub fn run() {
             stop_capture,
             capture_stats,
             generate,
-            save_signal_as
+            save_signal_as,
+            save_project,
+            load_project,
+            load_simulator,
+            run_simulation
         ])
         .run(tauri::generate_context!())
         .expect("error while running urh desktop");

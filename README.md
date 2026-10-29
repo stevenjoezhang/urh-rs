@@ -55,12 +55,13 @@ The macOS phase is complete. Deliberately not ported: the Qt GUI (ui/models/cont
 
 ## GUI (work in progress)
 
-The original Qt GUI is not reproduced pixel-for-pixel; the desktop app is instead rebuilt with Tauri 2 + React + WebGL2, keeping all DSP in this crate. The architecture plan is in [docs/gui-architecture.md](docs/gui-architecture.md), the cross-layer IPC contract in [docs/ipc-contract.md](docs/ipc-contract.md), and decision records in [docs/adr/](docs/adr/).
+The original Qt GUI is not reproduced pixel-for-pixel; the desktop app is instead rebuilt with Tauri 2 + React + WebGL2, keeping all DSP in this crate. Implemented so far: waveform + spectrogram viewing with lossless zoom, drag-selection, protocol analysis with editable parameters and a virtualized message table (bidirectional selection), AWRE field detection, device capture with live waveform + FFT waterfall (mock device included for hardware-free testing), a signal generator, project save/load, and a simulator runner. See [docs/gui-architecture.md](docs/gui-architecture.md) for the plan, [docs/ipc-contract.md](docs/ipc-contract.md) for the cross-layer contract, [docs/gui-status.md](docs/gui-status.md) for exactly what is and is not implemented, and [docs/adr/](docs/adr/) for decision records.
 
 ```sh
-cargo test -p urh-app       # application service layer (waveform envelope, …)
+cargo test -p urh-app       # application service layer (analysis, devices, …)
 cd apps/desktop && npm run build && npm test   # frontend (requires node)
 cargo check -p urh-desktop  # Tauri shell (Linux needs webkit2gtk-4.1-dev)
+npm run tauri dev           # run the app (from apps/desktop)
 ```
 
 ## Original reference environment (optional, for the Python ground-truth comparison)

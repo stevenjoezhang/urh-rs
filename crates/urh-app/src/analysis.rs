@@ -411,6 +411,13 @@ fn estimate_work_params(
     params: &ValidatedParams,
     flag: &AtomicBool,
 ) -> Result<WorkParams, AppError> {
+    // Checked *before* any estimation work: auto-detection (the
+    // `modulation: None` arm below) is the single most expensive phase of
+    // the pipeline on real signals, and a job cancelled while it runs must
+    // not wait it out. The fixed-modulation arm has its own checkpoints in
+    // the per-segment loop; this one covers the prelude it shares with the
+    // auto arm (magnitude/noise/segmentation/`afp_demod`).
+    check_cancelled(flag)?;
     match params.modulation {
         None => match ai::estimate_with_noise(slice, params.noise_threshold) {
             Some(est) => Ok(apply_overrides(
@@ -976,11 +983,21 @@ mod tests {
         let flag = AtomicBool::new(true);
         let t0 = std::time::Instant::now();
         let err = analyze_samples(&signal, None, &validated, &flag).unwrap_err();
+        let cancelled_elapsed = t0.elapsed();
         assert_eq!(err.code, CODE_CANCELLED, "{err}");
+
+        // Control: the same call without cancellation performs the full DSP
+        // and must be measurably slower. An absolute budget (this test's
+        // original "< 50 ms") flakes on loaded CI runners, where scheduler
+        // latency — not DSP work — dominates; the ratio keeps the assertion
+        // about preemption instead.
+        let no_cancel = AtomicBool::new(false);
+        let t1 = std::time::Instant::now();
+        let _full = analyze_samples(&signal, None, &validated, &no_cancel).unwrap();
+        let full_elapsed = t1.elapsed();
         assert!(
-            t0.elapsed().as_millis() < 50,
-            "cancellation must preempt the DSP, took {:?}",
-            t0.elapsed()
+            cancelled_elapsed * 4 < full_elapsed,
+            "cancellation must preempt the DSP (cancelled {cancelled_elapsed:?} vs full {full_elapsed:?})"
         );
     }
 

@@ -55,12 +55,13 @@ macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Ra
 
 ## GUI（进行中）
 
-原版 Qt GUI 不做像素级复刻，而是以 Tauri 2 + React + WebGL2 重建桌面应用，DSP 全部保留在本 crate。架构方案见 [docs/gui-architecture.md](docs/gui-architecture.md)，跨层 IPC 契约见 [docs/ipc-contract.md](docs/ipc-contract.md)，决策记录见 [docs/adr/](docs/adr/)。
+原版 Qt GUI 不做像素级复刻，而是以 Tauri 2 + React + WebGL2 重建桌面应用，DSP 全部保留在本 crate。已实现：波形 + 频谱查看（无损缩放）、拖拽选区、协议分析（参数可编辑、消息表虚拟化、双向选区联动）、AWRE 字段检测、设备采集（实时波形 + FFT 瀑布，附带无需硬件的 mock 设备）、信号生成器、工程保存/加载、仿真运行器。方案见 [docs/gui-architecture.md](docs/gui-architecture.md)，跨层契约见 [docs/ipc-contract.md](docs/ipc-contract.md)，实现边界见 [docs/gui-status.md](docs/gui-status.md)，决策记录见 [docs/adr/](docs/adr/)。
 
 ```sh
-cargo test -p urh-app       # 应用服务层（波形 envelope 等）
+cargo test -p urh-app       # 应用服务层（分析、设备……）
 cd apps/desktop && npm run build && npm test   # 前端（需 node）
 cargo check -p urh-desktop  # Tauri 壳（Linux 需 webkit2gtk-4.1-dev）
+npm run tauri dev           # 运行应用（在 apps/desktop 下）
 ```
 
 ## 原版参考环境（可选，用于跑 Python 真值对照）

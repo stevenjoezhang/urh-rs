@@ -46,6 +46,8 @@ pub use analysis::{AnalysisParams, AnalysisResult, EstimatedParams, MessageInfo}
 pub use awre::FieldLabel;
 pub use devices::{CaptureConfig, CaptureHandle, CaptureStats, DeviceInfo};
 pub use generator::GeneratorParams;
+pub use project::{ProjectSignal, ProjectState, PROJECT_VERSION};
+pub use simulator::{SimRuleInfo, SimTranscriptEntry};
 
 use std::collections::HashMap;
 use std::io;
