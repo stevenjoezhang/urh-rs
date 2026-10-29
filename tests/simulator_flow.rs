@@ -19,10 +19,10 @@
 use std::collections::VecDeque;
 use std::fs;
 
-use urh_core::simulator::config::SimulatorConfiguration;
-use urh_core::simulator::engine::{Simulator, SimulatorIO, SimulatorSettings};
-use urh_core::simulator::item::NodeKind;
-use urh_core::{Bit, Complex32};
+use urh::simulator::config::SimulatorConfiguration;
+use urh::simulator::engine::{Simulator, SimulatorIO, SimulatorSettings};
+use urh::simulator::item::NodeKind;
+use urh::{Bit, Complex32};
 
 const PROFILE: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/testprofile.sim.xml");
 

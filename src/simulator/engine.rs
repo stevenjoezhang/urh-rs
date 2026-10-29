@@ -210,9 +210,9 @@ impl Simulator {
             NodeKind::TriggerCommand { command, .. } => {
                 let command = self.fill_counter_values(command.as_deref().unwrap_or(""));
                 self.log_message(format!("Calling {command}"));
-                // External program execution is not supported by urh-core.
+                // External program execution is not supported by the urh crate.
                 self.log_message(
-                    "External program execution is not supported by urh-core".to_string(),
+                    "External program execution is not supported by the urh crate".to_string(),
                 );
                 Ok(self.config.next(id))
             }
@@ -494,7 +494,7 @@ impl Simulator {
                 3 => {
                     // external program
                     self.log_message(
-                        "External program execution is not supported by urh-core".to_string(),
+                        "External program execution is not supported by the urh crate".to_string(),
                     );
                     continue;
                 }

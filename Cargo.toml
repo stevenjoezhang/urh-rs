@@ -1,9 +1,15 @@
 [package]
-name = "urh-core"
+name = "urh"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.87"
 description = "Rust port of the Universal Radio Hacker (URH) signal processing core"
 license = "Apache-2.0"
+repository = "https://github.com/stevenjoezhang/urh-rs"
+readme = "README.md"
+documentation = "https://docs.rs/urh"
+keywords = ["sdr", "radio", "signal", "urh", "rtlsdr"]
+categories = ["science", "hardware-support"]
 
 [dependencies]
 num-complex = "0.4"

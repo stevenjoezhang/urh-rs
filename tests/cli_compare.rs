@@ -196,7 +196,7 @@ fn compare_file(name: &str) {
     let py = run_python(&file);
     let rs = run_cli_analyze(&file);
 
-    // modulation: "OOK" in the reference maps to ASK in urh-core
+    // modulation: "OOK" in the reference maps to ASK in urh
     let py_mod = if py.modulation == "OOK" {
         "ASK".to_string()
     } else {

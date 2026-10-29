@@ -1,4 +1,4 @@
-//! `urh-cli` — offline IQ file analysis CLI for the urh-core crate.
+//! `urh-cli` — offline IQ file analysis CLI for the urh crate.
 //!
 //! Unlike the original URH CLI (which targets live device sniffing), this tool
 //! analyzes recorded IQ files:
@@ -12,15 +12,15 @@
 
 use std::process::ExitCode;
 
-use urh_core::autointerpret;
-use urh_core::iq::{arr2decibel, IqArray, IqFormat};
-use urh_core::modulation::afp_demod;
-use urh_core::protocol::ProtocolAnalyzer;
-use urh_core::Modulation;
+use urh::autointerpret;
+use urh::iq::{arr2decibel, IqArray, IqFormat};
+use urh::modulation::afp_demod;
+use urh::protocol::ProtocolAnalyzer;
+use urh::Modulation;
 
 const DEFAULT_SAMPLE_RATE: f64 = 1_000_000.0;
 const USAGE: &str = "\
-urh-cli — offline IQ file analysis (urh-core)
+urh-cli — offline IQ file analysis (urh)
 
 USAGE:
   urh-cli info <file> [--sample-rate N]
@@ -182,7 +182,7 @@ struct Analysis {
 /// the modulation detection runs the same way (segmentation, demodulation,
 /// center/plateau estimation per message segment).
 fn estimate_with_modulation(
-    iq: &[urh_core::Complex32],
+    iq: &[urh::Complex32],
     modulation: Modulation,
     ook: bool,
 ) -> Option<Analysis> {
@@ -329,7 +329,7 @@ fn cmd_analyze(args: &[String]) -> Result<(), String> {
 }
 
 fn cmd_participants(args: &[String]) -> Result<(), String> {
-    use urh_core::awre::FormatFinder;
+    use urh::awre::FormatFinder;
 
     let common = parse_common(args)?;
     let (analysis, pa) = run_analysis(&common)?;

@@ -1,4 +1,4 @@
-//! # urh-core
+//! # urh
 //!
 //! Rust port of the Universal Radio Hacker (URH) signal processing core.
 //!

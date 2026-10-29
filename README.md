@@ -1,4 +1,4 @@
-# urh-core
+# urh
 
 [![CI](https://github.com/stevenjoezhang/urh-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/stevenjoezhang/urh-rs/actions/workflows/ci.yml)
 

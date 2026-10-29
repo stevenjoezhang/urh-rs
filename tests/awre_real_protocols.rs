@@ -1,6 +1,6 @@
 //! Ports of the real-protocol AWRE tests (`tests/awre/test_awre_real_protocols.py`,
 //! `tests/awre/test_address_engine.py` and `tests/awre/test_generated_protocols.py`),
-//! driven through `.proto.xml` files loaded with `urh_core::proto_xml`.
+//! driven through `.proto.xml` files loaded with `urh::proto_xml`.
 //!
 //! Expected field positions and participant addresses were taken from the
 //! Python reference (Cython extensions in ~/urh-ref), which is run with the
@@ -10,10 +10,10 @@
 
 use std::collections::HashMap;
 
-use urh_core::awre::format_finder::FormatFinder;
-use urh_core::awre::message_type_builder::FieldFunction;
-use urh_core::proto_xml::load_protocol;
-use urh_core::protocol::Message;
+use urh::awre::format_finder::FormatFinder;
+use urh::awre::message_type_builder::FieldFunction;
+use urh::proto_xml::load_protocol;
+use urh::protocol::Message;
 
 const DATA_DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/data/");
 
@@ -63,7 +63,7 @@ fn known_addresses_hex(ff: &FormatFinder) -> HashMap<usize, String> {
 
 /// Assert (start, length) of the first label with the given function.
 fn assert_field(
-    mt: &urh_core::awre::message_type_builder::AnalyzedMessageType,
+    mt: &urh::awre::message_type_builder::AnalyzedMessageType,
     function: FieldFunction,
     start: usize,
     length: usize,
