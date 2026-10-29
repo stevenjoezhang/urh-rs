@@ -75,7 +75,9 @@ jobs:
           cargo test --features soundcard --lib -- devices
 
   # sdrbuild-style job: collect the *real* vendor driver libraries from
-  # their official upstream sources and run the native device backend
+  # their official upstream sources (apt on linux, homebrew + official
+  # libiio source build on macOS, official releases / source builds on
+  # windows) and run the native device backend
   # tests, so the dlopen paths are exercised with actual libraries
   # present instead of only the LibraryUnavailable path. Without physical
   # hardware open() must fail cleanly (OpenFailed) and device_list() must
@@ -93,7 +95,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -110,6 +112,21 @@ jobs:
       # SDRPlay has no distro package (license-restricted download); it stays
       # covered by the LibraryUnavailable path here and by real-hardware
       # testing on a machine with the SDRplay API installed.
+
+      - name: Install vendor libraries (macos)
+        if: runner.os == 'macOS'
+        run: |
+          brew install hackrf librtlsdr airspy libbladerf limesuite uhd libusb
+          # libiio is not in homebrew-core — build it from the official
+          # Analog Devices source into /usr/local (default dyld search path).
+          git clone --depth 1 https://github.com/analogdevicesinc/libiio /tmp/libiio
+          cmake -S /tmp/libiio -B /tmp/libiio/build \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+            -DWITH_EXAMPLES=OFF -DWITH_TESTS=OFF -DWITH_DOC=OFF \
+            -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+          sudo cmake --build /tmp/libiio/build --parallel
+          sudo cmake --install /tmp/libiio/build
+      # SDRPlay likewise stays on the LibraryUnavailable path on macOS.
 
       # ------------------------------------------------------------------
       # Windows: official-source collection (no binary blobs in this repo,
@@ -275,11 +292,24 @@ jobs:
         if: runner.os == 'Linux'
         run: cargo test --lib -- devices::native --nocapture --test-threads=1
 
+      - name: Run device backend tests with libraries present (macos)
+        if: runner.os == 'macOS'
+        run: |
+          # arm64 runners keep brew libraries in /opt/homebrew/lib, which is
+          # not in the default dlopen search path
+          export DYLD_LIBRARY_PATH="/opt/homebrew/lib:/usr/local/lib:$DYLD_LIBRARY_PATH"
+          cargo test --lib -- devices::native --nocapture --test-threads=1
+
       - name: Run device backend tests with libraries present (windows)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          export PATH="$PWD/dist:$PATH"
+          # msvc-dev-cmd's environment makes rustc resolve `link.exe` via
+          # PATH, where Git Bash's GNU coreutils /usr/bin/link shadows the
+          # MSVC linker — put the real MSVC bin dir first.
+          MSVC_BIN=$(ls -d "$(cygpath -u "$VSINSTALLDIR")"/VC/Tools/MSVC/*/bin/Hostx64/x64 | head -1)
+          echo "msvc bin: $MSVC_BIN"
+          export PATH="$MSVC_BIN:$PWD/dist:$PATH"
           cargo test --lib -- devices::native --nocapture --test-threads=1
 
   clippy:
