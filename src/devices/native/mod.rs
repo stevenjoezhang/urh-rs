@@ -144,11 +144,14 @@ pub fn registry() -> Vec<NativeBackend> {
         },
         NativeBackend {
             name: "sdrplay",
+            // SDRPlay API v3 (sdrplay_api_*); v2 fallback names kept last —
+            // mirrors LIBRARY_NAMES in sdrplay.rs
             libraries: &[
-                "libmirsdrapi-rsp.3.dylib",
-                "libmirsdrapi-rsp.dylib",
+                "libsdrplay_api.so",
+                "libsdrplay_api.dylib",
+                "sdrplay_api.dll",
                 "libmirsdrapi-rsp.so",
-                "mirsdrapi-rsp.dll",
+                "libmirsdrapi-rsp.dylib",
             ],
         },
     ]
@@ -176,11 +179,42 @@ pub fn library_available(name: &str) -> bool {
             None => return false,
         },
     };
-    names.iter().any(|n| {
-        // SAFETY: loading a shared library by name only runs its
-        // constructors; we immediately drop it and never use any symbol.
-        unsafe { libloading::Library::new(n).is_ok() }
-    })
+    names.iter().any(|n| try_open(n).is_ok())
+}
+
+/// Directories probed in addition to the default dlopen search path.
+///
+/// Mirrors upstream URH's `ExtensionHelper`, which adds these prefixes on
+/// macOS for the Cython extensions: arm64 Homebrew (`/opt/homebrew/lib`),
+/// Intel Homebrew / conventional (`/usr/local/lib`) and MacPorts
+/// (`/opt/local/lib`) are **not** in the default bare-name dlopen search
+/// path, so vendor libraries installed there would otherwise be missed.
+pub const EXTRA_LIB_DIRS: &[&str] = if cfg!(target_os = "macos") {
+    &["/opt/homebrew/lib", "/usr/local/lib", "/opt/local/lib"]
+} else {
+    &[]
+};
+
+/// dlopen a vendor library by bare name, falling back to [`EXTRA_LIB_DIRS`].
+///
+/// Returns the first successful load; when everything fails, the error of
+/// the bare-name attempt (so callers' "library not found" messages keep
+/// showing the plain name).
+pub fn try_open(name: &str) -> Result<libloading::Library, libloading::Error> {
+    // SAFETY: loading a shared library runs only its constructors; the
+    // call sites go on to resolve checked symbols before any use.
+    if let Ok(lib) = unsafe { libloading::Library::new(name) } {
+        return Ok(lib);
+    }
+    for dir in EXTRA_LIB_DIRS {
+        let path = std::path::Path::new(dir).join(name);
+        // SAFETY: as above.
+        if let Ok(lib) = unsafe { libloading::Library::new(&path) } {
+            return Ok(lib);
+        }
+    }
+    // SAFETY: as above.
+    unsafe { libloading::Library::new(name) }
 }
 
 /// Open a native device by backend name (simplified `BackendHandler`

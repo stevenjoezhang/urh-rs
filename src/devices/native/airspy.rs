@@ -173,7 +173,7 @@ impl AirSpyDevice {
     pub fn load_library() -> Result<libloading::Library, DeviceError> {
         let mut last = String::new();
         for name in LIBRARY_NAMES {
-            match unsafe { libloading::Library::new(name) } {
+            match crate::devices::native::try_open(name) {
                 // SAFETY: plain dlopen of a named shared library.
                 Ok(lib) => return Ok(lib),
                 Err(e) => last = format!("{name}: {e}"),

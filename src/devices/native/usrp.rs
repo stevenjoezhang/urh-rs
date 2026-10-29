@@ -212,7 +212,7 @@ fn load_library() -> Result<Library, DeviceError> {
     let mut last = String::new();
     for name in LIBRARY_NAMES {
         // SAFETY: compile-time constant names; plain dlopen probe.
-        match unsafe { Library::new(name) } {
+        match crate::devices::native::try_open(name) {
             Ok(lib) => return Ok(lib),
             Err(e) => last = format!("{name}: {e}"),
         }
@@ -996,7 +996,7 @@ mod tests {
     fn open_without_libuhd_is_library_unavailable() {
         let installed = LIBRARY_NAMES
             .iter()
-            .any(|n| unsafe { Library::new(n) }.is_ok());
+            .any(|n| crate::devices::native::try_open(n).is_ok());
         // SAFETY: constant names; plain dlopen probe.
         if !installed {
             match UsrpDevice::open(None) {
@@ -1029,7 +1029,7 @@ mod tests {
     fn find_devices_without_libuhd_errors_cleanly() {
         let installed = LIBRARY_NAMES
             .iter()
-            .any(|n| unsafe { Library::new(n) }.is_ok());
+            .any(|n| crate::devices::native::try_open(n).is_ok());
         // SAFETY: constant names; plain dlopen probe.
         if !installed {
             assert!(matches!(
