@@ -2,38 +2,38 @@
 
 [![CI](https://github.com/stevenjoezhang/urh-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/stevenjoezhang/urh-rs/actions/workflows/ci.yml)
 
-A Rust port of the signal-processing core of the [Universal Radio Hacker (URH)](https://github.com/jopohl/urh). URH is archived; this project transplants its core module by module, with behavior verified bit-for-bit / sample-for-sample against measured output of the original Python implementation. The Qt GUI is not (yet) ported.
+**[English](README.md) | [中文](README.CN.md)**
 
-[Universal Radio Hacker (URH)](https://github.com/jopohl/urh) 的 Rust 转写。URH 已归档；本项目逐模块移植其信号处理核心，行为与原版逐位/逐样本对齐（以原版 Python 实测输出为真值验收）。GUI 不在范围内。
+A Rust port of the signal-processing core of the [Universal Radio Hacker (URH)](https://github.com/jopohl/urh). URH is archived; this project transplants its core module by module, with behavior verified bit-for-bit / sample-for-sample against measured output of the original Python implementation. The Qt GUI is not (yet) ported.
 
 **License**: Apache-2.0, same as upstream URH. This is a derivative work of jopohl/urh; the original copyright and license apply to the ported algorithms and design (see `LICENSE`).
 
-## 模块
+## Modules
 
-| 模块 | 内容 | 参照 (URH) |
+| Module | Contents | Reference (URH) |
 |---|---|---|
-| `iq` | IQ 容器、`.complex*` 全格式文件 I/O、幅度/dB | `IQArray.py`, `Signal.py`, `util.pyx` |
-| `filter` | FIR/IIR、滑动平均、直流校正 | `signal_functions.pyx`, `Filter.py` |
-| `modulation` | ASK/FSK/PSK/GFSK/OQPSK 调制与解调（含 costas loop） | `signal_functions.pyx`, `Modulator.py` |
-| `encoding` | 编码链（Manchester/差分/Morse/CC1101 白化…）+ CRC 全家 | `Encoding.py`, `GenericCRC.py`, `util.pyx` |
-| `protocol` | 消息/消息类型/协议分析 | `Message.py`, `ProtocolAnalyzer.py` |
-| `autointerpret` | 自动参数估计（调制/bit_length/center/noise） | `auto_interpretation.pyx`, `ainterpretation/` |
-| `awre` | 协议结构自动推断：preamble/sync/长度/序号/地址/校验字段 | `awre/` 全部 |
-| `devices` | 设备后端：12 个（见下） | `dev/` |
-| `proto_xml` | `.proto.xml` 协议文件加载/保存（quick-xml） | `ProtocolAnalyzerContainer.py` |
-| `spectrogram` | STFT 频谱图（手写 radix-2 FFT） | `Spectrogram.py` |
-| `simulator` | 仿真规则引擎：表达式解析、规则-动作树、消息收发循环、配置 XML | `simulator/`（GUI 场景项除外） |
-| `continuous_modulator` / `endless_sender` | 连续调制发送 / 循环发送 | `ContinuousModulator.py`, `EndlessSender.py` |
+| `iq` | IQ container, `.complex*` all-format file I/O, magnitude/dB | `IQArray.py`, `Signal.py`, `util.pyx` |
+| `filter` | FIR/IIR, moving average, DC correction | `signal_functions.pyx`, `Filter.py` |
+| `modulation` | ASK/FSK/PSK/GFSK/OQPSK modulation and demodulation (incl. costas loop) | `signal_functions.pyx`, `Modulator.py` |
+| `encoding` | Encoding chains (Manchester / differential / Morse / CC1101 whitening …) + full CRC family | `Encoding.py`, `GenericCRC.py`, `util.pyx` |
+| `protocol` | Messages / message types / protocol analysis | `Message.py`, `ProtocolAnalyzer.py` |
+| `autointerpret` | Automatic parameter estimation (modulation/bit_length/center/noise) | `auto_interpretation.pyx`, `ainterpretation/` |
+| `awre` | Automatic protocol structure inference: preamble/sync/length/sequence/address/checksum fields | all of `awre/` |
+| `devices` | Device backends: 12 (see below) | `dev/` |
+| `proto_xml` | `.proto.xml` protocol file load/save (quick-xml) | `ProtocolAnalyzerContainer.py` |
+| `spectrogram` | STFT spectrogram (hand-written radix-2 FFT) | `Spectrogram.py` |
+| `simulator` | Simulation rule engine: expression parsing, rule-action tree, message send/receive loop, config XML | `simulator/` (except GUI scene items) |
+| `continuous_modulator` / `endless_sender` | Continuous modulated sending / endless sending | `ContinuousModulator.py`, `EndlessSender.py` |
 
-另有 `tests/simulator_flow.rs`：与原版 `test_simulation_flow` 的 Python 实测输出（消息序列/transcript/样本流）逐条对照一致。
+There is also `tests/simulator_flow.rs`: message sequences / transcript / sample streams compared entry by entry against the measured output of the original `test_simulation_flow` — all matching.
 
-## 设备后端
+## Device backends
 
-- **直接绑厂商库（运行时 dlopen，无 SDK 也能编译）**：HackRF（含 rad1o）、RTL-SDR、AirSpy、BladeRF、LimeSDR、PlutoSDR (libiio)、USRP (libuhd)、SDRPlay
-- **声卡**：cpal/CoreAudio（实信号 / 立体声 IQ 两模式）
-- **RTL-TCP**：纯 Rust 网络协议实现（mock 服务器字节级测试）
-- **VirtualDevice**：`.complex*` 文件回放当信号源；**PCAP/PCAPNG**：解析 + 回放
-- 4 个 `#[ignore]` 硬件冒烟测试留给有设备的环境
+- **Direct vendor-library bindings (runtime `dlopen`; compiles without any SDK installed)**: HackRF (incl. rad1o), RTL-SDR, AirSpy, BladeRF, LimeSDR, PlutoSDR (libiio), USRP (libuhd), SDRPlay
+- **Sound card**: cpal/CoreAudio (real-valued signal / stereo-IQ modes)
+- **RTL-TCP**: pure-Rust implementation of the network protocol (byte-level tests against a mock server)
+- **VirtualDevice**: `.complex*` file replay as a signal source; **PCAP/PCAPNG**: parsing + replay
+- 4 `#[ignore]` hardware smoke tests, for environments that have the devices
 
 ## CLI
 
@@ -41,19 +41,20 @@ A Rust port of the signal-processing core of the [Universal Radio Hacker (URH)](
 cargo run --bin urh-cli -- info|analyze|participants <file.complex> [--sample-rate N] [--modulation ASK|FSK|...]
 ```
 
-## 测试与行为一致性
+## Tests and behavioral fidelity
 
-`cargo test` — 单元 + 集成测试。验收原则：**与原版实测对照，不与直觉对照**：
-- `tests/cli_compare.rs`：对 ask/fsk/ASK_mod/ask_short.complex 跑原版 Python（`URH_REF_SRC` 指向的原版源码 + venv）与 Rust CLI，断言调制/bit_length/消息比特长序列全等，center/noise/pause 容差内（实测逐位一致）
-- `tests/awre_real_protocols.rs`：35_messages / ack_frames_with_crc / with_checksum / without_preamble 四个真实协议，字段推断结果（位置/长度/地址值/成员归属）与原版 FormatFinder 实测一致
-- 原版上游 bug（`get_crc_datarange` 索引、`median_filter` 窗口、`bit_end` 溢出回绕等）原样保留并注释，保证行为可对照
+`cargo test` — unit + integration tests. Acceptance principle: **verified against measured output of the original, not against intuition**:
 
-## 状态
+- `tests/cli_compare.rs`: runs the original Python (`URH_REF_SRC` points at the original sources + venv) and the Rust CLI on ask/fsk/ASK_mod/ask_short.complex, asserting that modulation/bit_length/full message bit sequences are identical, with center/noise/pause within tolerance (measured: bit-for-bit identical)
+- `tests/awre_real_protocols.rs`: four real protocols (35_messages / ack_frames_with_crc / with_checksum / without_preamble); field inference results (positions/lengths/address values/membership) match the original FormatFinder's measured output
+- Upstream bugs (`get_crc_datarange` indexing, `median_filter` window, `bit_end` overflow wrap-around, …) are preserved as-is with comments, so behavior stays comparable
 
-macOS 阶段完成。有意未移植：Qt GUI（ui/models/controller）、GNU Radio 后端（dev/gr）。simulator 规则引擎核心已移植（表达式解析器/规则-动作/引擎/配置 XML，GUI 场景项除外）。
+## Status
 
-## 原版参考环境（可选，用于跑 Python 真值对照）
+The macOS phase is complete. Deliberately not ported: the Qt GUI (ui/models/controller), the GNU Radio backend (dev/gr). The simulator rule engine core is ported (expression parser / rule-actions / engine / config XML; GUI scene items excepted).
 
-任选目录 clone 原版：`git clone https://github.com/jopohl/urh <urh-ref>`，然后
-`python3 -m venv /tmp/urh-venv && /tmp/urh-venv/bin/pip install numpy psutil PyQt6 cython setuptools && cd <urh-ref> && /tmp/urh-venv/bin/python setup.py build_ext --inplace`。
-`tests/cli_compare.rs` 通过 `URH_REF_SRC` 环境变量定位原版源码（默认 `../urh-ref/src`），环境缺失时自动跳过。CI 中该步骤仅在 Linux 上执行。
+## Original reference environment (optional, for the Python ground-truth comparison)
+
+Clone the original anywhere: `git clone https://github.com/jopohl/urh <urh-ref>`, then
+`python3 -m venv /tmp/urh-venv && /tmp/urh-venv/bin/pip install numpy psutil PyQt6 cython setuptools && cd <urh-ref> && /tmp/urh-venv/bin/python setup.py build_ext --inplace`.
+`tests/cli_compare.rs` locates the original sources via the `URH_REF_SRC` environment variable (default `../urh-ref/src`) and skips automatically when they are unavailable. In CI this step runs on Linux only.
