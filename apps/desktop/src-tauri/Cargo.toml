@@ -20,6 +20,9 @@ tauri-plugin-dialog = "2"
 urh-app.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+# capture://batch event bodies: Tauri 2 events are JSON-serialized, so the
+# raw LE f32 I/Q bytes ride as base64 (docs/ipc-contract.md "Device capture")
+base64 = "0.22"
 
 [[bin]]
 name = "urh-desktop"

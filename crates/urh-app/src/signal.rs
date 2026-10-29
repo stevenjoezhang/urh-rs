@@ -161,6 +161,11 @@ impl Signal {
         self.samples.len()
     }
 
+    /// Raw complex samples, for v2 services (analysis, spectrogram, AWRE).
+    pub(crate) fn samples(&self) -> &[urh::Complex32] {
+        &self.samples
+    }
+
     /// Update the metadata-only sample rate (Hz).
     pub(crate) fn set_sample_rate(&self, rate: f64) {
         self.sample_rate_bits

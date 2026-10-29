@@ -317,29 +317,41 @@ jobs:
   # Linux webkit/gtk dev libraries, which is exactly why it lives here and
   # not in the plain test matrix.
   gui:
-    runs-on: ubuntu-latest
+    name: gui (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+      # Frontend build/test and urh-app unit tests are OS-independent; they
+      # run once, on the ubuntu leg (the leg that also has the webkit deps
+      # for a full shell check).
       - uses: actions/setup-node@v4
+        if: matrix.os == 'ubuntu-latest'
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: apps/desktop/package-lock.json
       - name: Install Tauri Linux build deps
+        if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             libwebkit2gtk-4.1-dev libgtk-3-dev \
             libayatana-appindicator3-dev librsvg2-dev
       - name: Frontend install + build + test
+        if: matrix.os == 'ubuntu-latest'
         working-directory: apps/desktop
         run: |
           npm ci
           npm run build
           npm test
       - name: urh-app tests
+        if: matrix.os == 'ubuntu-latest'
         run: cargo test -p urh-app
       - name: Tauri shell compiles
         run: cargo check -p urh-desktop

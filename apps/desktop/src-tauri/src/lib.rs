@@ -16,7 +16,10 @@ use std::sync::Arc;
 
 use serde::Serialize;
 use tauri::State;
-use urh_app::{SignalMeta, SignalRepository, WaveformMode};
+use urh_app::{
+    AnalysisParams, AnalysisResult, CaptureConfig, CaptureHandle, CaptureStats, DeviceInfo,
+    FieldLabel, GeneratorParams, SignalMeta, SignalRepository, WaveformMode,
+};
 
 /// Process-wide state: one signal repository shared by all commands.
 struct AppState {
@@ -132,6 +135,203 @@ async fn get_waveform_envelope(
     Ok(tauri::ipc::Response::new(frame))
 }
 
+// ---- v2 commands (docs/ipc-contract.md "v2 additions") ----
+
+/// IPC-side range validation: both endpoints present and ordered, or neither.
+/// The repository re-validates against the signal's actual length.
+fn opt_range(range_start: Option<u64>, range_end: Option<u64>) -> Result<Option<(u64, u64)>, CmdError> {
+    match (range_start, range_end) {
+        (None, None) => Ok(None),
+        (Some(start), Some(end)) if start < end => Ok(Some((start, end))),
+        (Some(start), Some(end)) => Err(CmdError::invalid_argument(format!(
+            "range must satisfy start < end, got [{start}, {end})"
+        ))),
+        _ => Err(CmdError::invalid_argument(
+            "range_start and range_end must be given together".to_string(),
+        )),
+    }
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn get_spectrogram_tile(
+    state: State<'_, AppState>,
+    signal_id: String,
+    start: u64,
+    end: u64,
+    freq_bins: u32,
+    window_size: u32,
+    request_id: u32,
+) -> Result<tauri::ipc::Response, CmdError> {
+    let frame = blocking(&state.repo, move |repo| {
+        repo.spectrogram_tile(&signal_id, start, end, freq_bins, window_size, request_id)
+    })
+    .await?;
+    Ok(tauri::ipc::Response::new(frame))
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn analyze_signal(
+    state: State<'_, AppState>,
+    signal_id: String,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+    params: AnalysisParams,
+    job_id: u32,
+) -> Result<AnalysisResult, CmdError> {
+    let range = opt_range(range_start, range_end)?;
+    blocking(&state.repo, move |repo| {
+        repo.analyze(&signal_id, range, &params, job_id)
+    })
+    .await
+}
+
+// Sync on purpose: sets a cancellation flag; no blocking work (and Tauri
+// requires async + State to return Result, which a plain bool avoids).
+#[tauri::command(rename_all = "snake_case")]
+fn cancel_analysis(state: State<AppState>, job_id: u32) -> bool {
+    state.repo.cancel_analysis(job_id)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn run_awre(
+    state: State<'_, AppState>,
+    signal_id: String,
+    range_start: Option<u64>,
+    range_end: Option<u64>,
+    params: AnalysisParams,
+) -> Result<Vec<FieldLabel>, CmdError> {
+    let range = opt_range(range_start, range_end)?;
+    blocking(&state.repo, move |repo| {
+        repo.run_awre(&signal_id, range, &params)
+    })
+    .await
+}
+
+// ---- v2 device capture + generator commands ----
+
+/// Flattened `capture://stats` payload: `{capture_id, …CaptureStats}`.
+/// Owned (`emit` requires `Clone + Serialize`).
+#[derive(Serialize, Clone)]
+struct StatsEvent {
+    capture_id: String,
+    #[serde(flatten)]
+    stats: CaptureStats,
+}
+
+/// Forward a capture's preview batches and 1 Hz stats snapshots to the
+/// frontend as `capture://batch` / `capture://stats` events (contract).
+///
+/// Two plain threads per capture: the batch poller owns the single
+/// [`urh_app::devices::PreviewReceiver`] and exits when the capture ends
+/// (`PreviewClosed`); the stats poller exits when the capture id disappears
+/// from the repository. Batches are base64-encoded because Tauri 2 events
+/// are always JSON-serialized — raw `ArrayBuffer`s cannot ride `emit`.
+fn spawn_capture_forwarders(
+    app: tauri::AppHandle,
+    repo: Arc<SignalRepository>,
+    capture_id: String,
+) {
+    use std::time::Duration;
+    use tauri::Emitter;
+
+    if let Some(receiver) = repo.take_preview_receiver(&capture_id) {
+        let app = app.clone();
+        let id = capture_id.clone();
+        std::thread::spawn(move || {
+            use base64::Engine;
+            let engine = base64::engine::general_purpose::STANDARD;
+            loop {
+                match receiver.recv_timeout(Duration::from_millis(250)) {
+                    Ok(Some(batch)) => {
+                        let payload = serde_json::json!({
+                            "capture_id": id,
+                            "seq": batch.seq,
+                            "body": engine.encode(&batch.body),
+                        });
+                        // A failed emit (window gone) must not kill the
+                        // poller: batches keep draining until capture stop.
+                        let _ = app.emit("capture://batch", payload);
+                    }
+                    Ok(None) => continue,
+                    Err(_) => break, // capture ended, queue drained
+                }
+            }
+        });
+    }
+
+    let app = app.clone();
+    let id = capture_id.clone();
+    std::thread::spawn(move || {
+        use tauri::Emitter;
+        loop {
+            std::thread::sleep(Duration::from_secs(1));
+            match repo.capture_stats(&id) {
+                Ok(stats) => {
+                    let _ = app.emit(
+                        "capture://stats",
+                        StatsEvent {
+                            capture_id: id.clone(),
+                            stats,
+                        },
+                    );
+                }
+                // Unknown capture id → stopped (and possibly unregistered);
+                // a fresh start_capture spawns fresh forwarders.
+                Err(_) => break,
+            }
+        }
+    });
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn list_devices(state: State<'_, AppState>) -> Result<Vec<DeviceInfo>, CmdError> {
+    blocking(&state.repo, |repo| Ok(repo.list_devices())).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn start_capture(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    config: CaptureConfig,
+) -> Result<CaptureHandle, CmdError> {
+    let handle = blocking(&state.repo, move |repo| repo.start_capture(&config)).await?;
+    spawn_capture_forwarders(app, Arc::clone(&state.repo), handle.capture_id.clone());
+    Ok(handle)
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn stop_capture(
+    state: State<'_, AppState>,
+    capture_id: String,
+) -> Result<CaptureStats, CmdError> {
+    blocking(&state.repo, move |repo| repo.stop_capture(&capture_id)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn capture_stats(
+    state: State<'_, AppState>,
+    capture_id: String,
+) -> Result<CaptureStats, CmdError> {
+    blocking(&state.repo, move |repo| repo.capture_stats(&capture_id)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn generate(
+    state: State<'_, AppState>,
+    params: GeneratorParams,
+) -> Result<SignalMeta, CmdError> {
+    blocking(&state.repo, move |repo| repo.generate(&params)).await
+}
+
+#[tauri::command(rename_all = "snake_case")]
+async fn save_signal_as(
+    state: State<'_, AppState>,
+    signal_id: String,
+    path: String,
+) -> Result<(), CmdError> {
+    blocking(&state.repo, move |repo| repo.save_signal_as(&signal_id, &path)).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -144,7 +344,17 @@ pub fn run() {
             close_signal,
             list_signals,
             set_sample_rate,
-            get_waveform_envelope
+            get_waveform_envelope,
+            get_spectrogram_tile,
+            analyze_signal,
+            cancel_analysis,
+            run_awre,
+            list_devices,
+            start_capture,
+            stop_capture,
+            capture_stats,
+            generate,
+            save_signal_as
         ])
         .run(tauri::generate_context!())
         .expect("error while running urh desktop");

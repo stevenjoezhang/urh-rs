@@ -29,6 +29,24 @@
 mod envelope;
 mod signal;
 
+// v2 service modules (docs/ipc-contract.md "v2 additions"). Each module owns
+// its file and adds `impl SignalRepository` blocks; none of them may edit
+// this file's shared state except through the crate-private helpers below.
+// `pub` so the Tauri command layer can name the IPC types (they are part of
+// the crate's public API surface per the contract).
+pub mod analysis;
+pub mod awre;
+pub mod devices;
+pub mod generator;
+pub mod project;
+pub mod simulator;
+pub mod spectrogram;
+
+pub use analysis::{AnalysisParams, AnalysisResult, EstimatedParams, MessageInfo};
+pub use awre::FieldLabel;
+pub use devices::{CaptureConfig, CaptureHandle, CaptureStats, DeviceInfo};
+pub use generator::GeneratorParams;
+
 use std::collections::HashMap;
 use std::io;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -293,6 +311,28 @@ impl SignalRepository {
             .get(signal_id)
             .cloned()
             .ok_or_else(|| AppError::unknown_signal(signal_id))
+    }
+
+    /// Allocate a fresh unique id with the given prefix (`"sig-"`,
+    /// `"rec-"`, `"gen-"` …). v2 modules register signals they build in
+    /// memory (generator output, finished recordings) through this plus
+    /// [`Self::register`].
+    pub(crate) fn alloc_id(&self, prefix: &str) -> String {
+        format!(
+            "{prefix}{}",
+            self.next_id.fetch_add(1, Ordering::Relaxed) + 1
+        )
+    }
+
+    /// Register a signal built in memory under `id` (from [`Self::alloc_id`])
+    /// and return the shared handle.
+    pub(crate) fn register(&self, id: String, signal: Signal) -> Arc<Signal> {
+        let arc = Arc::new(signal);
+        self.signals
+            .write()
+            .expect("signal table lock poisoned")
+            .insert(id, arc.clone());
+        arc
     }
 }
 

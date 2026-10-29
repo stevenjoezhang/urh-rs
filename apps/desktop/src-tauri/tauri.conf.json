@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "urh",
+        "title": "urh — Universal Radio Hacker (Rust)",
         "width": 1280,
         "height": 800,
         "minWidth": 900,
@@ -25,6 +25,23 @@
     }
   },
   "bundle": {
-    "active": false
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/64x64.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "category": "Science",
+    "shortDescription": "Analyze signals with the urh DSP core in a native GUI",
+    "longDescription": "urh is a Rust port of Universal Radio Hacker's signal-processing core with a Tauri 2 + React + WebGL2 desktop GUI: offline IQ waveform/spectrogram viewing, protocol analysis, field detection and device capture.",
+    "linux": {
+      "deb": {
+        "depends": []
+      }
+    }
   }
 }
