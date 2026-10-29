@@ -83,10 +83,11 @@ jobs:
   # lib_present() branches.
   #
   # Windows collects everything from upstream (libusb / fftw.org / GSG /
-  # osmocom / airspy / myriadrf / Nuand / ADI / zlatkovic / ettus.com) —
-  # no third-party driver bundles, so this repository stays self-contained
-  # without committing any binaries. (SDRPlay is the one exception that
-  # cannot be fetched automatically; see the note below.)
+  # osmocom / airspy / myriadrf / Nuand / ADI / zlatkovic) — no third-party
+  # driver bundles, so this repository stays self-contained without
+  # committing any binaries. (UHD and SDRPlay cannot be fetched
+  # automatically; see the notes below. Their dlopen paths are covered by
+  # the ubuntu job via apt / by real-hardware machines respectively.)
   drivers:
     name: driver-present dlopen (${{ matrix.os }})
     strategy:
@@ -256,14 +257,10 @@ jobs:
       # real-library coverage happens on machines with the SDRplay API
       # installed (e.g. local real-hardware validation).
 
-      - name: UHD 4.1.0.5 — official installer (windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          curl -sL --retry 3 -o work/uhd.exe \
-            https://files.ettus.com/binaries/uhd/uhd_004.001.000.005-release/4.1.0.5/Windows-10-x64/uhd_4.1.0.5-release_Win64_VS2019.exe
-          7z x work/uhd.exe -owork/uhd > /dev/null
-          cp work/uhd/bin/uhd.dll dist/
+      # UHD: files.ettus.com now sits behind Cloudflare bot protection (403
+      # for CI downloaders) and has no official GitHub binary release, so
+      # the Windows job cannot fetch it automatically. The usrp backend's
+      # dlopen path stays covered by the ubuntu job (apt libuhd-dev).
 
       - name: Collected libraries (windows)
         if: runner.os == 'Windows'
