@@ -302,7 +302,7 @@ fn load_library() -> Result<Library, DeviceError> {
     for name in LIBRARY_NAMES {
         // SAFETY: loading a library may run its initializers; libhackrf is a
         // trusted vendor library and loading it is exactly the intended use.
-        match unsafe { Library::new(name) } {
+        match crate::devices::native::try_open(name) {
             Ok(lib) => return Ok(lib),
             Err(e) => last = format!("{name}: {e}"),
         }
@@ -841,7 +841,7 @@ mod tests {
         LIBRARY_NAMES.iter().any(|n| {
             // SAFETY: probe load only; the HackRF vendor library's
             // initializers are trusted, and the Library is dropped at once.
-            unsafe { Library::new(n) }.is_ok()
+            crate::devices::native::try_open(n).is_ok()
         })
     }
 

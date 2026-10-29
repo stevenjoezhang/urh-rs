@@ -92,7 +92,7 @@ fn load_library() -> Result<Library, DeviceError> {
     for name in LIBRARY_NAMES {
         // SAFETY: `name` is a compile-time constant NUL-free string; the
         // call only resolves/loads the shared object.
-        match unsafe { Library::new(name) } {
+        match crate::devices::native::try_open(name) {
             Ok(lib) => return Ok(lib),
             Err(e) => last = format!("{name}: {e}"),
         }
@@ -702,7 +702,7 @@ mod tests {
     fn open_without_libiio_is_library_unavailable() {
         let installed = LIBRARY_NAMES
             .iter()
-            .any(|n| unsafe { Library::new(n) }.is_ok());
+            .any(|n| crate::devices::native::try_open(n).is_ok());
         // SAFETY: constant NUL-free names; plain dlopen probe.
         if !installed {
             match PlutoSdrDevice::open(None) {
@@ -744,7 +744,7 @@ mod tests {
     fn scan_without_libiio_errors_cleanly() {
         let installed = LIBRARY_NAMES
             .iter()
-            .any(|n| unsafe { Library::new(n) }.is_ok());
+            .any(|n| crate::devices::native::try_open(n).is_ok());
         // SAFETY: constant names; plain dlopen probe.
         if !installed {
             assert!(matches!(

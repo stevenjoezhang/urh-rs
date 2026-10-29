@@ -1,0 +1,17 @@
+[package]
+name = "urh-app"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.87"
+license = "Apache-2.0"
+description = "Application service layer for the urh GUI: signal repository, viewport waveform envelopes, analysis job orchestration"
+
+[dependencies]
+urh.workspace = true
+thiserror.workspace = true
+serde.workspace = true
+# project .urhproj JSON save/load (contract "Project")
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

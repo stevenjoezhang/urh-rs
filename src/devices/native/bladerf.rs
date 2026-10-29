@@ -593,7 +593,7 @@ fn load_library() -> Result<libloading::Library, DeviceError> {
     for name in LIBRARY_NAMES {
         // SAFETY: loading a shared library by name is the intended use of
         // libloading; all further calls into it go through checked symbols.
-        if let Ok(lib) = unsafe { libloading::Library::new(name) } {
+        if let Ok(lib) = crate::devices::native::try_open(name) {
             return Ok(lib);
         }
     }
@@ -619,10 +619,7 @@ mod tests {
     }
 
     fn lib_present() -> bool {
-        LIBRARY_NAMES.iter().any(|n| unsafe {
-            // SAFETY: probe dlopen of a library name, immediately dropped.
-            libloading::Library::new(n).is_ok()
-        })
+        LIBRARY_NAMES.iter().any(|n| crate::devices::native::try_open(n).is_ok())
     }
 
     #[test]
