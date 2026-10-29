@@ -177,6 +177,29 @@ export function useSignalView(options: UseSignalViewOptions) {
     }
   }, []);
 
+  /**
+   * Make an already-open repository signal the active one (signal-list
+   * switch; freshly registered `rec-<n>`/`gen-<n>` results). Same reset as
+   * {@link openPath}, minus the open call — the backend already knows it.
+   *
+   * `restore` (project load) instead applies a saved view+mode — clamped
+   * against the *new* signal's extent, which a follow-up setView could not
+   * do: the mirror refs only sync in an effect, so the same-tick clamp would
+   * use the previous signal's sample count.
+   */
+  const activateSignal = useCallback(
+    (m: SignalMeta, restore?: { view: ViewRange; mode: WaveformMode }): void => {
+      setError(null);
+      setMeta(m);
+      setViewState(clampView(restore === undefined ? { start: 0, end: m.sample_count } : restore.view, m.sample_count));
+      if (restore !== undefined) setModeState(restore.mode);
+      setSelectionState(null);
+      setCursorState(null);
+      setSnapshot(null);
+    },
+    [],
+  );
+
   const setMode = useCallback((next: WaveformMode): void => {
     setModeState(next);
   }, []);
@@ -271,6 +294,7 @@ export function useSignalView(options: UseSignalViewOptions) {
     loading,
     // actions
     openPath,
+    activateSignal,
     setMode,
     applySampleRate,
     zoomAt,

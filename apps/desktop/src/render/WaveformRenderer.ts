@@ -23,6 +23,16 @@ export interface ViewRange {
   end: number;
 }
 
+/**
+ * Half-open sample interval used for *ranges over* the view (message
+ * extents, normalized selections) — structurally a {@link ViewRange}, kept
+ * distinct so intent is explicit.
+ */
+export interface Interval {
+  start: number;
+  end: number;
+}
+
 /** Selection in samples; `selStart` is the drag anchor, `selEnd` the head. */
 export interface SelectionRange {
   selStart: number;
@@ -59,6 +69,9 @@ const COLOR_Q: readonly [number, number, number, number] = [239 / 255, 154 / 255
 const COLOR_MAG: readonly [number, number, number, number] = [129 / 255, 199 / 255, 132 / 255, 1];
 const COLOR_SEL_FILL: readonly [number, number, number, number] = [79 / 255, 195 / 255, 247 / 255, 0.15];
 const COLOR_SEL_EDGE: readonly [number, number, number, number] = [79 / 255, 195 / 255, 247 / 255, 0.8];
+const COLOR_SEL_HANDLE: readonly [number, number, number, number] = [79 / 255, 195 / 255, 247 / 255, 0.3];
+const COLOR_MSG_FILL: readonly [number, number, number, number] = [255 / 255, 176 / 255, 0 / 255, 0.1];
+const COLOR_MSG_EDGE: readonly [number, number, number, number] = [255 / 255, 176 / 255, 0 / 255, 0.65];
 const COLOR_CURSOR: readonly [number, number, number, number] = [1, 1, 1, 0.35];
 
 const Y_RANGE_IQ: readonly [number, number] = [-1.1, 1.1];
@@ -66,6 +79,10 @@ const Y_RANGE_MAG: readonly [number, number] = [0, 1.1];
 
 /** Switch to the polyline path at or below this samples-per-bin ratio. */
 const DEGENERATE_SAMPLES_PER_BIN = 1.5;
+
+/** Selection edge handles: half-width and cap height, in CSS pixels. */
+const SEL_HANDLE_HALF_PX = 4;
+const SEL_HANDLE_CAP_PX = 3;
 
 // Fixed WebGL enum values (spec-constant; usable without a live context).
 const GL_LINES = 0x0001;
@@ -181,6 +198,8 @@ export class WaveformRenderer {
   private envView: ViewRange | null = null;
   private view: ViewRange = { start: 0, end: 1 };
   private selection: SelectionRange | null = null;
+  /** Protocol-table message extent `[start, end)`, highlighted in amber. */
+  private messageHighlight: Interval | null = null;
   private cursor: number | null = null;
   private mode: WaveformMode = WaveformMode.Iq;
 
@@ -251,6 +270,12 @@ export class WaveformRenderer {
     this.draw();
   }
 
+  /** Highlight a protocol message's `[start, end)` extent (table row click). */
+  setMessageHighlight(m: Interval | null): void {
+    this.messageHighlight = m;
+    this.draw();
+  }
+
   setCursor(sample: number | null): void {
     this.cursor = sample;
     this.draw();
@@ -308,6 +333,7 @@ export class WaveformRenderer {
       }
     }
 
+    if (this.messageHighlight !== null) this.drawMessageHighlight();
     if (this.selection !== null) this.drawSelection();
     if (this.cursor !== null) this.drawCursor();
   }
@@ -387,6 +413,64 @@ export class WaveformRenderer {
     this.pushOverlayVert(x2, -1);
     this.pushOverlayVert(x2, 1);
     this.flushOverlay(GL_LINES, COLOR_SEL_EDGE);
+    this.drawEdgeHandles(x1, x2);
+  }
+
+  /**
+   * Grab handles at the selection edges: a wider translucent bar plus cap
+   * ticks top and bottom, sized in CSS pixels so they stay grabbable at any
+   * zoom level (hit-testing in the app uses the same CSS-pixel tolerance).
+   */
+  private drawEdgeHandles(x1: number, x2: number): void {
+    const half = this.pxToClipX(SEL_HANDLE_HALF_PX);
+    const cap = this.pxToClipY(SEL_HANDLE_CAP_PX);
+    for (const x of [x1, x2]) {
+      const l = Math.max(-1, x - half);
+      const r = Math.min(1, x + half);
+      if (r <= -1 || l >= 1) continue; // fully off-canvas
+      this.resetOverlay();
+      this.pushOverlayVert(l, -1);
+      this.pushOverlayVert(r, -1);
+      this.pushOverlayVert(r, 1);
+      this.pushOverlayVert(l, 1);
+      this.flushOverlay(GL_TRIANGLE_FAN, COLOR_SEL_HANDLE);
+      this.resetOverlay();
+      this.pushOverlayVert(l, -1);
+      this.pushOverlayVert(r, -1);
+      this.pushOverlayVert(l, -1 + cap);
+      this.pushOverlayVert(r, -1 + cap);
+      this.pushOverlayVert(l, 1 - cap);
+      this.pushOverlayVert(r, 1 - cap);
+      this.pushOverlayVert(l, 1);
+      this.pushOverlayVert(r, 1);
+      this.flushOverlay(GL_LINES, COLOR_SEL_EDGE);
+    }
+  }
+
+  /** Amber band + solid end bars; visually distinct from the blue selection. */
+  private drawMessageHighlight(): void {
+    const m = this.messageHighlight;
+    if (m === null || !(m.start < m.end)) return;
+    const x1 = this.clipX(this.sampleToX(m.start));
+    const x2 = this.clipX(this.sampleToX(m.end));
+    this.resetOverlay();
+    this.pushOverlayVert(x1, -1);
+    this.pushOverlayVert(x2, -1);
+    this.pushOverlayVert(x2, 1);
+    this.pushOverlayVert(x1, 1);
+    this.flushOverlay(GL_TRIANGLE_FAN, COLOR_MSG_FILL);
+    const bar = this.pxToClipX(2);
+    for (const x of [x1, x2]) {
+      const l = Math.max(-1, x - bar);
+      const r = Math.min(1, x + bar);
+      if (r <= -1 || l >= 1) continue;
+      this.resetOverlay();
+      this.pushOverlayVert(l, -1);
+      this.pushOverlayVert(r, -1);
+      this.pushOverlayVert(r, 1);
+      this.pushOverlayVert(l, 1);
+      this.flushOverlay(GL_TRIANGLE_FAN, COLOR_MSG_EDGE);
+    }
   }
 
   private drawCursor(): void {
@@ -401,6 +485,16 @@ export class WaveformRenderer {
   /** CSS x -> clip-space x. */
   private clipX(xCss: number): number {
     return this.cssW <= 0 ? -1 : (xCss / this.cssW) * 2 - 1;
+  }
+
+  /** A CSS-pixel width -> clip-space width (clamped to the canvas). */
+  private pxToClipX(px: number): number {
+    return this.cssW <= 0 ? 0 : Math.min((px / this.cssW) * 2, 2);
+  }
+
+  /** A CSS-pixel height -> clip-space height (clamped to the canvas). */
+  private pxToClipY(px: number): number {
+    return this.cssH <= 0 ? 0 : Math.min((px / this.cssH) * 2, 2);
   }
 
   /** Reusable overlay vertex scratch; rebuilt/grown on demand, never per-bin. */
