@@ -83,9 +83,10 @@ jobs:
   # lib_present() branches.
   #
   # Windows collects everything from upstream (libusb / fftw.org / GSG /
-  # osmocom / airspy / myriadrf / Nuand / ADI / zlatkovic / sdrplay.com /
-  # ettus.com) — no third-party driver bundles, so this repository stays
-  # self-contained without committing any binaries.
+  # osmocom / airspy / myriadrf / Nuand / ADI / zlatkovic / ettus.com) —
+  # no third-party driver bundles, so this repository stays self-contained
+  # without committing any binaries. (SDRPlay is the one exception that
+  # cannot be fetched automatically; see the note below.)
   drivers:
     name: driver-present dlopen (${{ matrix.os }})
     strategy:
@@ -248,15 +249,12 @@ jobs:
           cp work/mingwrt/bin/libgcc*.dll work/mingwrt/bin/libwin*.dll dist/
           cp work/pthreads/Pre-built.2/dll/x64/pthreadVC2.dll dist/
 
-      - name: SDRPlay API 3.15 — official installer (windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          curl -sL --retry 3 -o work/sdrplay.exe \
-            https://www.sdrplay.com/software/SDRplay_RSP_API-Windows-3.15.exe
-          innoextract work/sdrplay.exe -d work/sdrplay
-          ls work/sdrplay/app/API/x64/
-          cp work/sdrplay/app/API/x64/sdrplay_api.dll dist/
+      # SDRPlay: no automated source exists — sdrplay.com is license-
+      # restricted AND behind Cloudflare bot protection (403 for CI
+      # downloaders), and there is no official GitHub release. Its Windows
+      # dlopen path stays covered by the LibraryUnavailable branch here;
+      # real-library coverage happens on machines with the SDRplay API
+      # installed (e.g. local real-hardware validation).
 
       - name: UHD 4.1.0.5 — official installer (windows)
         if: runner.os == 'Windows'
