@@ -17,7 +17,7 @@
 //! - [`limesdr`]: libLimeSuite
 //! - [`plutosdr`]: libiio
 //! - [`usrp`]: libuhd
-//! - [`sdrplay`]: libmirsdrapi-rsp
+//! - [`sdrplay`]: libsdrplay_api (SDRPlay v3 API service library)
 //! - [`soundcard`]: cpal (no dlopen)
 
 pub mod airspy;
